@@ -33,11 +33,6 @@ export interface BACNetAddress {
 	adr?: number[]
 }
 
-export interface DecodedAddress {
-	address: string
-	forwardedFrom?: string
-}
-
 export interface DecodedNpdu {
 	len: number
 	funct: number
@@ -48,7 +43,10 @@ export interface DecodedNpdu {
 	vendorId: number
 }
 
-export type AddressParameter = string | DecodedAddress
+export type AddressParameter = {
+	address: string
+	forwardedFrom?: string
+}
 
 export interface PropertyReference {
 	id: PropertyIdentifier
@@ -485,7 +483,7 @@ export interface ReinitializeDeviceOptions extends ServiceOptions {
 export interface BACnetMessageHeader {
 	apduType: number
 	expectingReply: boolean
-	sender: DecodedAddress
+	sender: AddressParameter
 	func?: number
 	confirmedService?: boolean
 }

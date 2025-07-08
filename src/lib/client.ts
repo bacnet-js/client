@@ -261,7 +261,8 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		)
 	}
 
-	private _getBuffer(isForwarded?: string | boolean) {
+	private _getBuffer(address?: AddressParameter) {
+		const isForwarded: boolean = !!address?.forwardedFrom
 		return Object.assign(
 			{},
 			{
@@ -304,9 +305,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		sequencenumber: number,
 		actualWindowSize: number,
 	) {
-		const receiverObj =
-			typeof receiver === 'string' ? { address: receiver } : receiver
-		const buffer = this._getBuffer(receiverObj && receiverObj.forwardedFrom)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE,
@@ -330,11 +329,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			BvlcResultPurpose.ORIGINAL_UNICAST_NPDU,
 			buffer.offset,
 		)
-		this._transport.send(
-			buffer.buffer,
-			buffer.offset,
-			typeof receiver === 'string' ? receiver : receiver.address,
-		)
+		this._transport.send(buffer.buffer, buffer.offset, receiver.address)
 	}
 
 	private _performDefaultSegmentHandling(
@@ -418,7 +413,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		} else {
 			if (msg.sequencenumber !== this._lastSequenceNumber + 1) {
 				return this._segmentAckResponse(
-					msg.header.sender.address,
+					{ address: msg.header.sender.address },
 					true,
 					server,
 					msg.invokeId,
@@ -440,7 +435,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			!moreFollows
 		) {
 			this._segmentAckResponse(
-				msg.header.sender.address,
+				{ address: msg.header.sender.address },
 				false,
 				server,
 				msg.invokeId,
@@ -862,9 +857,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 
 		options = options || {}
 
-		const buffer = this._getBuffer(
-			receiver && typeof receiver !== 'string' && receiver.forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 
 		baNpdu.encode(
 			buffer,
@@ -890,9 +883,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The timeSync command sets the time of a target device.
 	 */
 	timeSync(receiver: AddressParameter, dateTime: Date): void {
-		const buffer: EncodeBuffer = this._getBuffer(
-			receiver && typeof receiver !== 'string' && receiver.forwardedFrom,
-		)
+		const buffer: EncodeBuffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeUnconfirmedServiceRequest(
 			buffer,
@@ -907,9 +898,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The timeSyncUTC command sets the UTC time of a target device.
 	 */
 	timeSyncUTC(receiver: AddressParameter, dateTime: Date): void {
-		const buffer: EncodeBuffer = this._getBuffer(
-			receiver && typeof receiver !== 'string' && receiver.forwardedFrom,
-		)
+		const buffer: EncodeBuffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeUnconfirmedServiceRequest(
 			buffer,
@@ -924,13 +913,13 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The readProperty command reads a single property of an object from a device.
 	 */
 	readProperty(
-		address: string,
+		address: AddressParameter,
 		objectId: BACNetObjectID,
 		propertyId: number,
 		callback: DataCallback<DecodeAcknowledgeSingleResult>,
 	): void
 	readProperty(
-		address: string,
+		address: AddressParameter,
 		objectId: BACNetObjectID,
 		propertyId: number,
 		options: ReadPropertyOptions,
@@ -962,9 +951,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 					: ASN1_ARRAY_ALL,
 		}
 
-		const buffer: EncodeBuffer = this._getBuffer(
-			receiver && typeof receiver !== 'string' && receiver.forwardedFrom,
-		)
+		const buffer: EncodeBuffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1024,7 +1011,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The writeProperty command writes a single property of an object to a device.
 	 */
 	writeProperty(
-		address: string,
+		address: AddressParameter,
 		objectId: BACNetObjectID,
 		propertyId: number,
 		values: BACNetAppData[],
@@ -1056,9 +1043,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				(options as WritePropertyOptions).priority || ASN1_NO_PRIORITY,
 		}
 
-		const buffer: EncodeBuffer = this._getBuffer(
-			receiver && typeof receiver !== 'string' && receiver.forwardedFrom,
-		)
+		const buffer: EncodeBuffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1100,12 +1085,12 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The readPropertyMultiple command reads multiple properties in multiple objects from a device.
 	 */
 	readPropertyMultiple(
-		address: string,
+		address: AddressParameter,
 		propertiesArray: BACNetReadAccessSpecification[],
 		callback: DataCallback<DecodeAcknowledgeMultipleResult>,
 	): void
 	readPropertyMultiple(
-		address: string,
+		address: AddressParameter,
 		propertiesArray: BACNetReadAccessSpecification[],
 		options: ServiceOptions,
 		callback: DataCallback<DecodeAcknowledgeMultipleResult>,
@@ -1128,9 +1113,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			invokeId:
 				(options as ServiceOptions).invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as { forwardedFrom?: string }).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1178,12 +1161,12 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The writePropertyMultiple command writes multiple properties in multiple objects to a device.
 	 */
 	writePropertyMultiple(
-		address: string,
+		address: AddressParameter,
 		values: WritePropertyMultipleObject[],
 		callback: ErrorCallback,
 	): void
 	writePropertyMultiple(
-		address: string,
+		address: AddressParameter,
 		values: WritePropertyMultipleObject[],
 		options: ServiceOptions,
 		callback: ErrorCallback,
@@ -1205,9 +1188,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			invokeId:
 				(options as ServiceOptions).invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as { forwardedFrom?: string }).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1317,9 +1298,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				this._getInvokeId(),
 			password: (options as DeviceCommunicationOptions).password,
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as { forwardedFrom?: string }).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1369,9 +1348,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				this._getInvokeId(),
 			password: (options as ReinitializeDeviceOptions).password,
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as { forwardedFrom?: string }).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1416,9 +1393,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			invokeId:
 				(options as ServiceOptions).invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as { forwardedFrom?: string }).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1474,9 +1449,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			invokeId:
 				(options as ServiceOptions).invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as { forwardedFrom?: string }).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1531,9 +1504,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			invokeId:
 				(options as ServiceOptions).invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as { forwardedFrom?: string }).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1595,9 +1566,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			maxApdu: options.maxApdu || MaxApduLengthAccepted.OCTETS_1476,
 			invokeId: options.invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1652,9 +1621,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			maxApdu: options.maxApdu || MaxApduLengthAccepted.OCTETS_1476,
 			invokeId: options.invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1759,9 +1726,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			maxApdu: options.maxApdu || MaxApduLengthAccepted.OCTETS_1476,
 			invokeId: options.invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1805,9 +1770,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			maxApdu: options.maxApdu || MaxApduLengthAccepted.OCTETS_1476,
 			invokeId: options.invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1856,9 +1819,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			maxApdu: options.maxApdu || MaxApduLengthAccepted.OCTETS_1476,
 			invokeId: options.invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1913,9 +1874,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			maxApdu: options.maxApdu || MaxApduLengthAccepted.OCTETS_1476,
 			invokeId: options.invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -1969,9 +1928,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			invokeId:
 				(options as ServiceOptions).invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -2024,9 +1981,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			invokeId:
 				(options as ServiceOptions).invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -2089,9 +2044,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			invokeId:
 				(options as ServiceOptions).invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -2147,9 +2100,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			invokeId:
 				(options as ServiceOptions).invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -2184,9 +2135,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		serviceNumber: number,
 		data: any,
 	): void {
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeUnconfirmedServiceRequest(
 			buffer,
@@ -2225,9 +2174,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			invokeId:
 				(options as ServiceOptions).invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -2276,9 +2223,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		receiver: AddressParameter,
 		eventNotification: any,
 	): void {
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeUnconfirmedServiceRequest(
 			buffer,
@@ -2309,9 +2254,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			invokeId:
 				(options as ServiceOptions).invokeId || this._getInvokeId(),
 		}
-		const buffer = this._getBuffer(
-			receiver && (receiver as any).forwardedFrom,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
@@ -2348,11 +2291,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		value: BACNetAppData[] | BACNetAppData,
 		options: { forwardedFrom?: string } = {},
 	): void {
-		const buffer = this._getBuffer(
-			receiver && typeof receiver !== 'string'
-				? receiver.forwardedFrom
-				: undefined,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeComplexAck(
 			buffer,
@@ -2381,11 +2320,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		invokeId: number,
 		values: BACNetReadAccess[],
 	): void {
-		const buffer = this._getBuffer(
-			receiver && typeof receiver !== 'string'
-				? receiver.forwardedFrom
-				: undefined,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeComplexAck(
 			buffer,
@@ -2406,11 +2341,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		segmentation: number,
 		vendorId: number,
 	): void {
-		const buffer = this._getBuffer(
-			receiver && typeof receiver !== 'string'
-				? receiver.forwardedFrom
-				: undefined,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeUnconfirmedServiceRequest(
 			buffer,
@@ -2436,11 +2367,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		objectId: BACNetObjectID,
 		objectName: string,
 	): void {
-		const buffer = this._getBuffer(
-			receiver && typeof receiver !== 'string'
-				? receiver.forwardedFrom
-				: undefined,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeUnconfirmedServiceRequest(
 			buffer,
@@ -2459,11 +2386,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		service: number,
 		invokeId: number,
 	): void {
-		const buffer = this._getBuffer(
-			receiver && typeof receiver !== 'string'
-				? receiver.forwardedFrom
-				: undefined,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeSimpleAck(buffer, PduType.SIMPLE_ACK, service, invokeId)
 		this.sendBvlc(receiver, buffer)
@@ -2485,11 +2408,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		trace(
 			`error message ${ErrorService.buildMessage({ class: errorClass, code: errorCode })}`,
 		)
-		const buffer = this._getBuffer(
-			receiver && typeof receiver !== 'string'
-				? receiver.forwardedFrom
-				: undefined,
-		)
+		const buffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeError(buffer, PduType.ERROR, service, invokeId)
 		ErrorService.encode(buffer, errorClass, errorCode)
@@ -2500,12 +2419,6 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Sends a BACnet Virtual Link Control message.
 	 */
 	sendBvlc(receiver: AddressParameter, buffer: EncodeBuffer): void {
-		if (typeof receiver === 'string') {
-			receiver = {
-				address: receiver,
-			}
-		}
-
 		if (receiver && receiver.forwardedFrom) {
 			// Remote node address given, forward to BBMD
 			baBvlc.encode(
@@ -2549,11 +2462,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			BvlcResultPurpose.BVLC_RESULT,
 			buffer.offset,
 		)
-		this._transport.send(
-			buffer.buffer,
-			buffer.offset,
-			typeof receiver == 'string' ? receiver : receiver.address,
-		)
+		this._transport.send(buffer.buffer, buffer.offset, receiver.address)
 	}
 
 	/**
