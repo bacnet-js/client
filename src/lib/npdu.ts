@@ -106,7 +106,7 @@ export const decode = (
 export const encode = (
 	buffer: EncodeBuffer,
 	funct: number,
-	destinationAddr?: AddressParameter,
+	destinationAddr?: AddressParameter | BACNetAddress,
 	source?: BACNetAddress,
 	hopCount?: number,
 	networkMsgType?: number,
@@ -114,22 +114,15 @@ export const encode = (
 ): void => {
 	// Convert AddressParameter to BACNetAddress if needed
 	let destination: BACNetAddress | undefined
-	if (destinationAddr) {
-		if (typeof destinationAddr === 'string') {
-			// For string addresses (IP:port format), assume local network
-			destination = {
-				type: BACNET_ADDRESS_TYPES.IP,
-				net: 0, // Local network
-				adr: [], // Will be resolved by transport layer
-			}
-		} else {
-			// Already a DecodedAddress object
-			destination = {
-				type: BACNET_ADDRESS_TYPES.IP,
-				net: 0, // Default to local network for decoded addresses
-				adr: [], // Address resolution handled elsewhere
-			}
+	if ('address' in destinationAddr) {
+		// Already a DecodedAddress object
+		destination = {
+			type: BACNET_ADDRESS_TYPES.IP,
+			net: 0, // Default to local network for decoded addresses
+			adr: [], // Address resolution handled elsewhere
 		}
+	} else {
+		destination = destinationAddr as BACNetAddress
 	}
 
 	const hasDestination = destination?.net > 0
