@@ -26,38 +26,23 @@ export interface EncodeBuffer {
 
 /**
  * BACnet network address structure.
- * Either `net` (network number) or `address` (string) must be specified.
  */
-export interface BACNetAddressOptional {
+export interface BACNetAddress {
+	/**
+	 * The BACnet network, use 0 for local, 1 for remote, 0xffff for broadcast. Default is 0.
+	 */
+	net?: number
 	/** 0 for local, 1 for IP, 2 for MAC, etc. */
 	type?: number
 	/** IP address or MAC address of the target device. May differ from `address` when behind a proxy */
 	adr?: number[]
-	/** <ip>:<port> */
+	/** `<ip>:<port>` */
 	forwardedFrom?: string
+	/**
+	 * The BACnet address `<ip>:<port>`.
+	 */
+	address?: string
 }
-
-export type BACNetAddress =
-	| (BACNetAddressOptional & {
-			/**
-			 * The BACnet network, use 0 for local, 1 for remote, 0xffff for broadcast.
-			 */
-			net: number
-			/**
-			 * The BACnet address `<ip>:<port>`
-			 */
-			address?: string
-	  })
-	| (BACNetAddressOptional & {
-			/**
-			 * The BACnet address `<ip>:<port>`. Required if `net` is not provided.
-			 */
-			address: string
-			/**
-			 * The BACnet network, use 0 for local, 1 for remote, 0xffff for broadcast. Optional if `address` is provided.
-			 */
-			net?: number
-	  })
 
 /**
  * Decoded Network Protocol Data Unit (NPDU) structure
