@@ -108,8 +108,6 @@ import {
 	PropertyIdentifier,
 	ReadRangeType,
 } from './enum'
-import { Address } from 'cluster'
-
 const debug = debugLib('bacnet:client:debug')
 const trace = debugLib('bacnet:client:trace')
 
