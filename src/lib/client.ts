@@ -41,7 +41,7 @@ import * as baNpdu from './npdu'
 import * as baBvlc from './bvlc'
 
 import {
-	AddressParameter,
+	BACNetAddress,
 	BACNetObjectID,
 	BACNetPropertyID,
 	BACNetAppData,
@@ -261,7 +261,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		)
 	}
 
-	private _getBuffer(address?: AddressParameter) {
+	private _getBuffer(address?: BACNetAddress) {
 		const isForwarded: boolean = !!address?.forwardedFrom
 		return Object.assign(
 			{},
@@ -298,7 +298,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	}
 
 	private _segmentAckResponse(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		negative: boolean,
 		server: boolean,
 		originalInvokeId: number,
@@ -842,10 +842,10 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * @fires BACnetClient.iAm
 	 */
 	public whoIs(
-		receiverOrOptions?: AddressParameter | WhoIsOptions,
+		receiverOrOptions?: BACNetAddress | WhoIsOptions,
 		options?: WhoIsOptions,
 	): void {
-		let receiver: AddressParameter | undefined
+		let receiver: BACNetAddress | undefined
 		if (!options) {
 			if (
 				receiverOrOptions &&
@@ -856,7 +856,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				options = receiverOrOptions as WhoIsOptions
 				receiverOrOptions = undefined
 			} else {
-				receiver = receiverOrOptions as AddressParameter
+				receiver = receiverOrOptions as BACNetAddress
 			}
 		}
 
@@ -887,7 +887,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	/**
 	 * The timeSync command sets the time of a target device.
 	 */
-	timeSync(receiver: AddressParameter, dateTime: Date): void {
+	timeSync(receiver: BACNetAddress, dateTime: Date): void {
 		const buffer: EncodeBuffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeUnconfirmedServiceRequest(
@@ -902,7 +902,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	/**
 	 * The timeSyncUTC command sets the UTC time of a target device.
 	 */
-	timeSyncUTC(receiver: AddressParameter, dateTime: Date): void {
+	timeSyncUTC(receiver: BACNetAddress, dateTime: Date): void {
 		const buffer: EncodeBuffer = this._getBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
 		baApdu.encodeUnconfirmedServiceRequest(
@@ -918,20 +918,20 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The readProperty command reads a single property of an object from a device.
 	 */
 	readProperty(
-		address: AddressParameter,
+		address: BACNetAddress,
 		objectId: BACNetObjectID,
 		propertyId: number,
 		callback: DataCallback<DecodeAcknowledgeSingleResult>,
 	): void
 	readProperty(
-		address: AddressParameter,
+		address: BACNetAddress,
 		objectId: BACNetObjectID,
 		propertyId: number,
 		options: ReadPropertyOptions,
 		callback: DataCallback<DecodeAcknowledgeSingleResult>,
 	): void
 	readProperty(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		propertyId: number,
 		options:
@@ -1016,7 +1016,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The writeProperty command writes a single property of an object to a device.
 	 */
 	writeProperty(
-		address: AddressParameter,
+		address: BACNetAddress,
 		objectId: BACNetObjectID,
 		propertyId: number,
 		values: BACNetAppData[],
@@ -1024,7 +1024,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		callback: ErrorCallback,
 	): void
 	writeProperty(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		propertyId: number,
 		values: BACNetAppData[],
@@ -1090,18 +1090,18 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The readPropertyMultiple command reads multiple properties in multiple objects from a device.
 	 */
 	readPropertyMultiple(
-		address: AddressParameter,
+		address: BACNetAddress,
 		propertiesArray: BACNetReadAccessSpecification[],
 		callback: DataCallback<DecodeAcknowledgeMultipleResult>,
 	): void
 	readPropertyMultiple(
-		address: AddressParameter,
+		address: BACNetAddress,
 		propertiesArray: BACNetReadAccessSpecification[],
 		options: ServiceOptions,
 		callback: DataCallback<DecodeAcknowledgeMultipleResult>,
 	): void
 	readPropertyMultiple(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		propertiesArray: BACNetReadAccessSpecification[],
 		options: ServiceOptions | DataCallback<DecodeAcknowledgeMultipleResult>,
 		next?: DataCallback<DecodeAcknowledgeMultipleResult>,
@@ -1166,18 +1166,18 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The writePropertyMultiple command writes multiple properties in multiple objects to a device.
 	 */
 	writePropertyMultiple(
-		address: AddressParameter,
+		address: BACNetAddress,
 		values: WritePropertyMultipleObject[],
 		callback: ErrorCallback,
 	): void
 	writePropertyMultiple(
-		address: AddressParameter,
+		address: BACNetAddress,
 		values: WritePropertyMultipleObject[],
 		options: ServiceOptions,
 		callback: ErrorCallback,
 	): void
 	writePropertyMultiple(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		values: WritePropertyMultipleObject[],
 		options: ServiceOptions | ErrorCallback,
 		next?: ErrorCallback,
@@ -1219,7 +1219,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * systems that have registered with us via a subscribeCov message.
 	 */
 	confirmedCOVNotification(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		monitoredObject: BACNetObjectID,
 		subscribeId: number,
 		initiatingDeviceId: number,
@@ -1284,7 +1284,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The deviceCommunicationControl command enables or disables network communication of the target device.
 	 */
 	deviceCommunicationControl(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		timeDuration: number,
 		enableDisable: number,
 		options: DeviceCommunicationOptions | ErrorCallback,
@@ -1335,7 +1335,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The reinitializeDevice command initiates a restart of the target device.
 	 */
 	reinitializeDevice(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		state: number,
 		options: ReinitializeDeviceOptions | ErrorCallback,
 		next?: ErrorCallback,
@@ -1380,7 +1380,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Writes a file to a remote device.
 	 */
 	writeFile(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		position: number,
 		fileBuffer: number[][],
@@ -1436,7 +1436,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Reads a file from a remote device.
 	 */
 	readFile(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		position: number,
 		count: number,
@@ -1491,7 +1491,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Reads a range of data from a remote device.
 	 */
 	readRange(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		idxBegin: number,
 		quantity: number,
@@ -1556,7 +1556,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Subscribes to Change of Value (COV) notifications for an object
 	 */
 	public subscribeCov(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		subscribeId: number,
 		cancel: boolean,
@@ -1611,7 +1611,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Subscribes to Change of Value (COV) notifications for a specific property
 	 */
 	public subscribeProperty(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		monitoredProperty: BACNetPropertyID,
 		subscribeId: number,
@@ -1669,7 +1669,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Sends an unconfirmed COV notification to a device
 	 */
 	public unconfirmedCOVNotification(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		subscriberProcessId: number,
 		initiatingDeviceId: number,
 		monitoredObjectId: BACNetObjectID,
@@ -1709,7 +1709,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Creates a new object in a device
 	 */
 	public createObject(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		values: Array<{
 			property: {
@@ -1760,7 +1760,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Deletes an object from a device
 	 */
 	public deleteObject(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		options: ServiceOptions,
 		next?: ErrorCallback,
@@ -1804,7 +1804,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Removes an element from a list property
 	 */
 	public removeListElement(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		reference: {
 			id: number
@@ -1859,7 +1859,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Adds an element to a list property
 	 */
 	public addListElement(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		reference: {
 			id: number
@@ -1914,7 +1914,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Gets the alarm summary from a device.
 	 */
 	getAlarmSummary(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		options: ServiceOptions | DataCallback<BACNetAlarm[]>,
 		next?: DataCallback<BACNetAlarm[]>,
 	): void {
@@ -1966,7 +1966,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Gets event information from a device.
 	 */
 	getEventInformation(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		options: ServiceOptions | DataCallback<BACNetEventInformation[]>,
 		next?: DataCallback<BACNetEventInformation[]>,
@@ -2025,7 +2025,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Acknowledges an alarm.
 	 */
 	acknowledgeAlarm(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		eventState: number,
 		ackText: string,
@@ -2083,7 +2083,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Sends a confirmed private transfer.
 	 */
 	confirmedPrivateTransfer(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		vendorId: number,
 		serviceNumber: number,
 		data: any,
@@ -2131,7 +2131,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Sends an unconfirmed private transfer.
 	 */
 	unconfirmedPrivateTransfer(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		vendorId: number,
 		serviceNumber: number,
 		data: any,
@@ -2151,7 +2151,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Gets enrollment summary from a device.
 	 */
 	getEnrollmentSummary(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		acknowledgmentFilter: number,
 		options:
 			| (ServiceOptions & {
@@ -2221,7 +2221,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Sends an unconfirmed event notification.
 	 */
 	unconfirmedEventNotification(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		eventNotification: any,
 	): void {
 		const buffer = this._getBuffer(receiver)
@@ -2239,7 +2239,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Sends a confirmed event notification.
 	 */
 	confirmedEventNotification(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		eventNotification: any,
 		options: ServiceOptions | ErrorCallback,
 		next?: ErrorCallback,
@@ -2285,7 +2285,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The readPropertyResponse call sends a response with information about one of our properties.
 	 */
 	readPropertyResponse(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		invokeId: number,
 		objectId: BACNetObjectID,
 		property: BACNetPropertyID,
@@ -2317,7 +2317,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Sends a response with information about multiple properties.
 	 */
 	readPropertyMultipleResponse(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		invokeId: number,
 		values: BACNetReadAccess[],
 	): void {
@@ -2337,7 +2337,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The iAmResponse command is sent as a reply to a whoIs request.
 	 */
 	iAmResponse(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		deviceId: number,
 		segmentation: number,
 		vendorId: number,
@@ -2363,7 +2363,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Sends an iHave response.
 	 */
 	iHaveResponse(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		deviceId: BACNetObjectID,
 		objectId: BACNetObjectID,
 		objectName: string,
@@ -2383,7 +2383,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Sends a simple acknowledgement response.
 	 */
 	simpleAckResponse(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		service: number,
 		invokeId: number,
 	): void {
@@ -2397,7 +2397,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Sends an error response.
 	 */
 	errorResponse(
-		receiver: AddressParameter,
+		receiver: BACNetAddress,
 		service: number,
 		invokeId: number,
 		errorClass: number,
@@ -2419,7 +2419,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	/**
 	 * Sends a BACnet Virtual Link Control message.
 	 */
-	sendBvlc(receiver: AddressParameter, buffer: EncodeBuffer): void {
+	sendBvlc(receiver: BACNetAddress, buffer: EncodeBuffer): void {
 		if (receiver && receiver.forwardedFrom) {
 			// Remote node address given, forward to BBMD
 			baBvlc.encode(
@@ -2451,7 +2451,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * The resultResponse is a BVLC-Result message used to respond to certain events, such as BBMD registration.
 	 * This message cannot be wrapped for passing through a BBMD, as it is used as a BBMD control message.
 	 */
-	resultResponse(receiver: AddressParameter, resultCode: number): void {
+	resultResponse(receiver: BACNetAddress, resultCode: number): void {
 		const buffer = this._getBuffer()
 		baApdu.encodeResult(buffer, resultCode)
 		baBvlc.encode(

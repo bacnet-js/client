@@ -24,14 +24,22 @@ export interface EncodeBuffer {
 	offset: number
 }
 
-export interface BACNetAddress {
+/**
+ * BACnet network address structure.
+ * Either `net` (network number) or `address` (string) must be specified.
+ */
+export interface BACNetAddressOptional {
 	/** 0 for local, 1 for IP, 2 for MAC, etc. */
 	type?: number
-	/** 0 for local, > 0 for remote, 0xffff for broadcast */
-	net?: number
 	/** IP address or MAC address, etc. */
 	adr?: number[]
+	/** <ip>:<port> */
+	forwardedFrom?: string
 }
+
+export type BACNetAddress =
+	| (BACNetAddressOptional & { net: number; address?: string })
+	| (BACNetAddressOptional & { address: string; net?: number })
 
 /**
  * Decoded Network Protocol Data Unit (NPDU) structure
@@ -81,13 +89,6 @@ export interface DecodedNpdu {
 	 * Identifies the vendor for proprietary message interpretation
 	 */
 	vendorId: number
-}
-
-export type AddressParameter = {
-	/** <ip>:<port> */
-	address: string
-	/** <ip>:<port> */
-	forwardedFrom?: string
 }
 
 export interface PropertyReference {
@@ -525,7 +526,7 @@ export interface ReinitializeDeviceOptions extends ServiceOptions {
 export interface BACnetMessageHeader {
 	apduType: number
 	expectingReply: boolean
-	sender: AddressParameter & BACNetAddress
+	sender: BACNetAddress
 	func?: number
 	confirmedService?: boolean
 }

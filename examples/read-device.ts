@@ -41,7 +41,7 @@ import Bacnet, {
 	DeviceObjectResult,
 	PropertyResult,
 	getEnumValues,
-	AddressParameter,
+	BACNetAddress,
 } from '../src'
 import * as process from 'process'
 
@@ -210,7 +210,7 @@ const debug = process.argv.includes('--debug')
  * Retrieve all properties manually because ReadPropertyMultiple is not available
  */
 function getAllPropertiesManually(
-	address: AddressParameter,
+	address: BACNetAddress,
 	objectId: BACNetObjectID,
 	callback: (result: DeviceObjectResult) => void,
 	propList?: number[],
@@ -335,7 +335,7 @@ function handleBitString(
  * Parses a property value
  */
 function parseValue(
-	address: AddressParameter,
+	address: BACNetAddress,
 	objId: number,
 	parentType: number,
 	value: any,
@@ -518,7 +518,7 @@ function parseValue(
  * Parse an object structure
  */
 function parseDeviceObject(
-	address: AddressParameter,
+	address: BACNetAddress,
 	obj: DeviceObjectResult | any,
 	parent: BACNetObjectID,
 	supportsMultiple: boolean,
