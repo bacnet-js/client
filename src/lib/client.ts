@@ -413,7 +413,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		} else {
 			if (msg.sequencenumber !== this._lastSequenceNumber + 1) {
 				return this._segmentAckResponse(
-					{ address: msg.header.sender.address },
+					msg.header.sender,
 					true,
 					server,
 					msg.invokeId,
@@ -435,7 +435,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			!moreFollows
 		) {
 			this._segmentAckResponse(
-				{ address: msg.header.sender.address },
+				msg.header.sender,
 				false,
 				server,
 				msg.invokeId,
