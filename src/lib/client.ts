@@ -298,7 +298,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	}
 
 	private _segmentAckResponse(
-		receiver: string | DecodedAddress,
+		receiver: AddressParameter,
 		negative: boolean,
 		server: boolean,
 		originalInvokeId: number,
