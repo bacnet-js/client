@@ -7,6 +7,7 @@ import BACnetClient, {
 	BACNetObjectID,
 	BACNetAppData,
 	ServiceOptions,
+	BACNetAddress,
 } from '../../src'
 
 // you need to have this run against the official backstack c
@@ -18,13 +19,13 @@ test.describe('bacnet - write property multiple compliance', () => {
 	const onClose: ((callback: () => void) => void) | null = null
 
 	function asyncReadProperty(
-		address: string,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		propertyId: number,
 	): Promise<any> {
 		return new Promise<any>((resolve, reject) => {
 			bacnetClient.readProperty(
-				{ address },
+				receiver,
 				objectId,
 				propertyId,
 				(err, value) => {

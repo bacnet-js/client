@@ -3,14 +3,14 @@ import assert from 'node:assert'
 
 import * as utils from './utils'
 import { once } from 'node:events'
-import BACnetClient from '../../src'
+import BACnetClient, { BACNetAddress } from '../../src'
 
 // you need to have this run against the official backstack c
 // demo device started as deviceId 1234
 // use "npm run docker" to execute this
 test.describe('bacnet - subscribe cov compliance', () => {
 	let bacnetClient: BACnetClient
-	let discoveredAddress: any
+	let discoveredAddress: BACNetAddress
 	const onClose: ((callback: () => void) => void) | null = null
 
 	test.before(async () => {

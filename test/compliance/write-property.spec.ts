@@ -3,24 +3,28 @@ import assert from 'node:assert'
 import { once } from 'node:events'
 
 import * as utils from './utils'
-import BACnetClient, { BACNetObjectID, BACNetAppData } from '../../src'
+import BACnetClient, {
+	BACNetObjectID,
+	BACNetAppData,
+	BACNetAddress,
+} from '../../src'
 
 // you need to have this run against the official backstack c
 // demo device started as deviceId 1234
 // use "npm run docker" to execute this
 test.describe('bacnet - write property compliance', () => {
 	let bacnetClient: BACnetClient
-	let discoveredAddress: any
+	let discoveredAddress: BACNetAddress
 	const onClose: ((callback: () => void) => void) | null = null
 
 	function asyncReadProperty(
-		address: string,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		propertyId: number,
 	): Promise<any> {
 		return new Promise<any>((resolve, reject) => {
 			bacnetClient.readProperty(
-				{ address },
+				receiver,
 				objectId,
 				propertyId,
 				(err, value) => {
@@ -35,14 +39,14 @@ test.describe('bacnet - write property compliance', () => {
 	}
 
 	function asyncWriteProperty(
-		address: string,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		propertyId: number,
 		values: BACNetAppData[],
 	): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
 			bacnetClient.writeProperty(
-				{ address },
+				receiver,
 				objectId,
 				propertyId,
 				values,

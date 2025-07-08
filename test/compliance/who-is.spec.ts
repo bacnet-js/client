@@ -3,7 +3,7 @@ import assert from 'node:assert'
 import { once } from 'node:events'
 
 import * as utils from './utils'
-import BACnetClient from '../../src'
+import BACnetClient, { WhoIsOptions } from '../../src'
 
 // you need to have this run against the official backstack c
 // demo device started as deviceId 1234
@@ -12,7 +12,7 @@ test.describe('bacnet - whoIs compliance', () => {
 	let bacnetClient: BACnetClient
 
 	function asyncWhoIs(
-		options?: { lowLimit?: number; highLimit?: number },
+		options?: WhoIsOptions,
 		timeoutMs: number = 10000,
 	): Promise<any> {
 		return new Promise<any>((resolve, reject) => {

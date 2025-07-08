@@ -4,6 +4,7 @@ import assert from 'node:assert'
 import * as utils from './utils'
 import { once } from 'node:events'
 import BACnetClient, {
+	BACNetAddress,
 	BACNetObjectID,
 	DecodeAcknowledgeSingleResult,
 } from '../../src'
@@ -13,17 +14,17 @@ import BACnetClient, {
 // use "npm run docker" to execute this
 test.describe('bacnet - read property compliance', () => {
 	let bacnetClient: BACnetClient
-	let discoveredAddress: any
+	let discoveredAddress: BACNetAddress
 	const onClose: ((callback: () => void) => void) | null = null
 
 	function asyncReadProperty(
-		address: string,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		propertyId: number,
 	): Promise<DecodeAcknowledgeSingleResult> {
 		return new Promise<DecodeAcknowledgeSingleResult>((resolve, reject) => {
 			bacnetClient.readProperty(
-				{ address },
+				receiver,
 				objectId,
 				propertyId,
 				(err, value) => {

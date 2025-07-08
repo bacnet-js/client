@@ -3,18 +3,22 @@ import assert from 'node:assert'
 import { once } from 'node:events'
 
 import * as utils from './utils'
-import BACnetClient, { BACNetObjectID, BACNetPropertyID } from '../../src'
+import BACnetClient, {
+	BACNetAddress,
+	BACNetObjectID,
+	BACNetPropertyID,
+} from '../../src'
 
 // you need to have this run against the official backstack c
 // demo device started as deviceId 1234
 // use "npm run docker" to execute this
 test.describe('bacnet - subscribe property compliance', () => {
 	let bacnetClient: BACnetClient
-	let discoveredAddress: any
+	let discoveredAddress: BACNetAddress
 	const onClose: ((callback: () => void) => void) | null = null
 
 	function asyncSubscribeProperty(
-		address: string,
+		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		property: BACNetPropertyID,
 		subscribeId: number,
@@ -23,7 +27,7 @@ test.describe('bacnet - subscribe property compliance', () => {
 	): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
 			bacnetClient.subscribeProperty(
-				{ address },
+				receiver,
 				objectId,
 				property,
 				subscribeId,

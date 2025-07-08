@@ -5,6 +5,7 @@ import * as utils from './utils'
 import { once } from 'node:events'
 import BACnetClient, {
 	ASN1_ARRAY_ALL,
+	BACNetAddress,
 	BACNetReadAccessSpecification,
 	DecodeAcknowledgeMultipleResult,
 } from '../../src'
@@ -14,17 +15,17 @@ import BACnetClient, {
 // use "npm run docker" to execute this
 test.describe('bacnet - read property multiple compliance', () => {
 	let bacnetClient: BACnetClient
-	let discoveredAddress: any
+	let discoveredAddress: BACNetAddress
 	const onClose: ((callback: () => void) => void) | null = null
 
 	function asyncReadPropertyMultiple(
-		address: string | null,
+		receiver: BACNetAddress,
 		propertiesArray: BACNetReadAccessSpecification[],
 	): Promise<DecodeAcknowledgeMultipleResult> {
 		return new Promise<DecodeAcknowledgeMultipleResult>(
 			(resolve, reject) => {
 				bacnetClient.readPropertyMultiple(
-					{ address },
+					receiver,
 					propertiesArray,
 					(err, value) => {
 						if (err) {
@@ -158,7 +159,7 @@ test.describe('bacnet - read property multiple compliance', () => {
 			},
 		]
 		const value = await asyncReadPropertyMultiple(
-			discoveredAddress.address,
+			discoveredAddress,
 			requestArray,
 		)
 
