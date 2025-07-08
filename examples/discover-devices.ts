@@ -52,7 +52,7 @@ bacnetClient.on('iAm', (device: any) => {
 	const deviceObjectId: BACNetObjectID = { type: 8, instance: deviceId }
 
 	bacnetClient.readProperty(
-		address as string,
+		address,
 		deviceObjectId,
 		PropertyIdentifier.OBJECT_NAME,
 		(err, value: DecodeAcknowledgeSingleResult | undefined) => {
@@ -63,7 +63,7 @@ bacnetClient.on('iAm', (device: any) => {
 				console.log(err)
 			} else {
 				bacnetClient.readProperty(
-					address as string, // Cast to string here as well
+					address, // Cast to string here as well
 					deviceObjectId,
 					PropertyIdentifier.VENDOR_NAME,
 					(err2, valueVendor) => {

@@ -41,6 +41,7 @@ import Bacnet, {
 	DeviceObjectResult,
 	PropertyResult,
 	getEnumValues,
+	AddressParameter,
 } from '../src'
 import * as process from 'process'
 
@@ -209,7 +210,7 @@ const debug = process.argv.includes('--debug')
  * Retrieve all properties manually because ReadPropertyMultiple is not available
  */
 function getAllPropertiesManually(
-	address: string | { address: string; forwardedFrom?: string },
+	address: AddressParameter,
 	objectId: BACNetObjectID,
 	callback: (result: DeviceObjectResult) => void,
 	propList?: number[],
@@ -245,7 +246,7 @@ function getAllPropertiesManually(
 
 	// Read only object-list property
 	bacnetClient.readProperty(
-		address as string,
+		address,
 		objectId,
 		prop,
 		{}, // Options object
@@ -334,7 +335,7 @@ function handleBitString(
  * Parses a property value
  */
 function parseValue(
-	address: string | { address: string; forwardedFrom?: string },
+	address: AddressParameter,
 	objId: number,
 	parentType: number,
 	value: any,
@@ -445,7 +446,7 @@ function parseValue(
 						},
 					]
 					bacnetClient.readPropertyMultiple(
-						address as string,
+						address,
 						requestArray,
 						(err, resValue) => {
 							//console.log(JSON.stringify(value.value) + ': ' + JSON.stringify(resValue));
@@ -517,7 +518,7 @@ function parseValue(
  * Parse an object structure
  */
 function parseDeviceObject(
-	address: string | { address: string; forwardedFrom?: string },
+	address: AddressParameter,
 	obj: DeviceObjectResult | any,
 	parent: BACNetObjectID,
 	supportsMultiple: boolean,
@@ -778,39 +779,35 @@ bacnetClient.on('iAm', (device) => {
 		},
 	]
 
-	bacnetClient.readPropertyMultiple(
-		address.address,
-		requestArray,
-		(err, value) => {
-			if (err) {
-				console.log(
-					deviceId,
-					'No ReadPropertyMultiple supported:',
-					err.message,
-				)
-				getAllPropertiesManually(
-					address,
-					{ type: 8, instance: deviceId },
-					(result) => {
-						parseDeviceObject(
-							address,
-							result,
-							{ type: 8, instance: deviceId },
-							false,
-							(res) => printResultObject(deviceId, res),
-						)
-					},
-				)
-			} else {
-				console.log(deviceId, 'ReadPropertyMultiple supported ...')
-				parseDeviceObject(
-					address,
-					value,
-					{ type: 8, instance: deviceId },
-					true,
-					(res) => printResultObject(deviceId, res),
-				)
-			}
-		},
-	)
+	bacnetClient.readPropertyMultiple(address, requestArray, (err, value) => {
+		if (err) {
+			console.log(
+				deviceId,
+				'No ReadPropertyMultiple supported:',
+				err.message,
+			)
+			getAllPropertiesManually(
+				address,
+				{ type: 8, instance: deviceId },
+				(result) => {
+					parseDeviceObject(
+						address,
+						result,
+						{ type: 8, instance: deviceId },
+						false,
+						(res) => printResultObject(deviceId, res),
+					)
+				},
+			)
+		} else {
+			console.log(deviceId, 'ReadPropertyMultiple supported ...')
+			parseDeviceObject(
+				address,
+				value,
+				{ type: 8, instance: deviceId },
+				true,
+				(res) => printResultObject(deviceId, res),
+			)
+		}
+	})
 })

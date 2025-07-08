@@ -138,7 +138,7 @@ client.on('readProperty', (data) => {
 		if (!object) {
 			debug(`Object not found: ${objectKey}, sending error response`)
 			return client.errorResponse(
-				address,
+				{ address },
 				ConfirmedServiceChoice.READ_PROPERTY,
 				invokeId,
 				ErrorClass.OBJECT,
@@ -154,7 +154,7 @@ client.on('readProperty', (data) => {
 				`Property not found: ${request.property?.id}, sending error response`,
 			)
 			return client.errorResponse(
-				address,
+				{ address },
 				ConfirmedServiceChoice.READ_PROPERTY,
 				invokeId,
 				ErrorClass.PROPERTY,
@@ -167,7 +167,7 @@ client.on('readProperty', (data) => {
 				`Sending readPropertyResponse to ${address} for ${objectKey}:${request.property?.id} with invokeId ${invokeId}`,
 			)
 			client.readPropertyResponse(
-				address,
+				{ address },
 				invokeId,
 				request.objectId,
 				request.property,
@@ -180,7 +180,7 @@ client.on('readProperty', (data) => {
 					`Property index not found: ${request.property?.index}, sending error response`,
 				)
 				return client.errorResponse(
-					address,
+					{ address },
 					ConfirmedServiceChoice.READ_PROPERTY,
 					invokeId,
 					ErrorClass.PROPERTY,
@@ -192,7 +192,7 @@ client.on('readProperty', (data) => {
 				`Sending readPropertyResponse (with index) to ${address} for ${objectKey}:${request.property?.id}[${request.property?.index}] with invokeId ${invokeId}`,
 			)
 			client.readPropertyResponse(
-				address,
+				{ address },
 				invokeId,
 				request.objectId,
 				request.property,
