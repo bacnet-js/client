@@ -2500,7 +2500,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	/**
 	 * Sends a BACnet Virtual Link Control message.
 	 */
-	sendBvlc(receiver: AddressParameter | null, buffer: EncodeBuffer): void {
+	sendBvlc(receiver: AddressParameter, buffer: EncodeBuffer): void {
 		if (typeof receiver === 'string') {
 			receiver = {
 				address: receiver,
