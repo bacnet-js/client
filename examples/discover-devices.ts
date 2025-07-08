@@ -63,7 +63,7 @@ bacnetClient.on('iAm', (device: any) => {
 				console.log(err)
 			} else {
 				bacnetClient.readProperty(
-					address, // Cast to string here as well
+					address,
 					deviceObjectId,
 					PropertyIdentifier.VENDOR_NAME,
 					(err2, valueVendor) => {
