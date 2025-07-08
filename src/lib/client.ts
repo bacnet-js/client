@@ -79,7 +79,6 @@ import {
 	ComplexAck,
 	ComplexAckMessage,
 	HasInvokeId,
-	DecodedAddress,
 	PropertyReference,
 	TypedValue,
 	BacnetService,
