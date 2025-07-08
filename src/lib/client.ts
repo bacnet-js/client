@@ -156,6 +156,46 @@ const confirmedServiceMap: BACnetEventsMap = {
 	[beC.CONFIRMED_PRIVATE_TRANSFER]: 'privateTransfer',
 }
 
+// Convert a callback-based method to return a Promise
+type AsyncVersion<T> = T extends (
+	...args: [...infer P, DataCallback<infer R>]
+) => any
+	? (...args: P) => Promise<unknown extends R ? void : R>
+	: never
+
+// List of method names that should have async versions
+const ASYNC_METHODS = [
+	'readProperty',
+	'readPropertyMultiple',
+	'writeProperty',
+	'writePropertyMultiple',
+	'confirmedCOVNotification',
+	'deviceCommunicationControl',
+	'reinitializeDevice',
+	'writeFile',
+	'readFile',
+	'readRange',
+	'subscribeCov',
+	'subscribeProperty',
+	'createObject',
+	'deleteObject',
+	'removeListElement',
+	'addListElement',
+	'getAlarmSummary',
+	'getEventInformation',
+	'acknowledgeAlarm',
+	'confirmedPrivateTransfer',
+	'getEnrollmentSummary',
+	'confirmedEventNotification',
+] as const
+
+type AsyncMethodName = (typeof ASYNC_METHODS)[number]
+
+// Create async versions of selected methods
+type AsyncMethods<T> = {
+	[K in AsyncMethodName]: K extends keyof T ? AsyncVersion<T[K]> : never
+}
+
 /**
  * To be able to communicate to BACNET devices, you have to initialize a new bacnet instance.
  * @class BACnetClient
@@ -184,8 +224,23 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 
 	private _segmentStore: any[] = []
 
+	// Async property that contains promisified versions
+	public readonly async: AsyncMethods<this>
+
 	constructor(options?: ClientOptions) {
 		super()
+
+		// Create the async property with promisified methods
+		this.async = {} as AsyncMethods<this>
+
+		// Automatically create async versions of specified methods
+		ASYNC_METHODS.forEach((methodName) => {
+			if (methodName in this && typeof this[methodName] === 'function') {
+				;(this.async as any)[methodName] = this.promisify(
+					this[methodName] as any,
+				)
+			}
+		})
 
 		options = options || {}
 
@@ -214,6 +269,26 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		this._transport.on('error', this._receiveError.bind(this))
 		this._transport.on('listening', () => this.emit('listening'))
 		this._transport.open()
+	}
+
+	private promisify<T extends (...args: any[]) => any>(
+		method: T,
+	): AsyncVersion<T> {
+		return ((...args: any[]) => {
+			return new Promise((resolve, reject) => {
+				const callback = (error?: Error, result?: any) => {
+					if (error) {
+						reject(error)
+					} else {
+						// For ErrorCallback (no result parameter), resolve with undefined
+						// For DataCallback, resolve with the result
+						resolve(result)
+					}
+				}
+
+				method.call(this, ...args, callback)
+			})
+		}) as AsyncVersion<T>
 	}
 
 	private _send(buffer: EncodeBuffer, receiver?: BACNetAddress) {
