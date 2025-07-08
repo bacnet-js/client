@@ -1,5 +1,11 @@
 import { NpduControlBit, NetworkLayerMessageType } from './enum'
-import { EncodeBuffer, BACNetAddress, TargetResult } from './types'
+import {
+	EncodeBuffer,
+	BACNetAddress,
+	TargetResult,
+	DecodedNpdu,
+	AddressParameter,
+} from './types'
 
 const BACNET_PROTOCOL_VERSION = 1
 const BACNET_ADDRESS_TYPES = {
@@ -52,17 +58,7 @@ export const decodeFunction = (
 export const decode = (
 	buffer: Buffer,
 	offset: number,
-):
-	| {
-			len: number
-			funct: number
-			destination?: BACNetAddress
-			source?: BACNetAddress
-			hopCount: number
-			networkMsgType: number
-			vendorId: number
-	  }
-	| undefined => {
+): DecodedNpdu | undefined => {
 	const orgOffset = offset
 	offset++
 	const funct = buffer[offset++]
@@ -110,16 +106,34 @@ export const decode = (
 export const encode = (
 	buffer: EncodeBuffer,
 	funct: number,
-	destination?: BACNetAddress | string,
+	destinationAddr?: AddressParameter,
 	source?: BACNetAddress,
 	hopCount?: number,
 	networkMsgType?: number,
 	vendorId?: number,
 ): void => {
-	const isDestinationAddress = destination && typeof destination !== 'string'
-	const hasDestination =
-		isDestinationAddress && (destination as BACNetAddress).net > 0
-	const hasSource = source && source.net > 0 && source.net !== 0xffff
+	// Convert AddressParameter to BACNetAddress if needed
+	let destination: BACNetAddress | undefined
+	if (destinationAddr) {
+		if (typeof destinationAddr === 'string') {
+			// For string addresses (IP:port format), assume local network
+			destination = {
+				type: BACNET_ADDRESS_TYPES.IP,
+				net: 0, // Local network
+				adr: [], // Will be resolved by transport layer
+			}
+		} else {
+			// Already a DecodedAddress object
+			destination = {
+				type: BACNET_ADDRESS_TYPES.IP,
+				net: 0, // Default to local network for decoded addresses
+				adr: [], // Address resolution handled elsewhere
+			}
+		}
+	}
+
+	const hasDestination = destination?.net > 0
+	const hasSource = source?.net > 0 && source.net !== 0xffff
 
 	buffer.buffer[buffer.offset++] = BACNET_PROTOCOL_VERSION
 	buffer.buffer[buffer.offset++] =
@@ -128,7 +142,7 @@ export const encode = (
 		(hasSource ? NpduControlBit.SOURCE_SPECIFIED : 0)
 
 	if (hasDestination) {
-		encodeTarget(buffer, destination as BACNetAddress)
+		encodeTarget(buffer, destination)
 	}
 
 	if (hasSource) {

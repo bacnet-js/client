@@ -25,19 +25,30 @@ export interface EncodeBuffer {
 }
 
 export interface BACNetAddress {
+	/** 0 for local, 1 for IP, 2 for MAC, etc. */
 	type?: number
+	/** 0 for local, > 0 for remote, 0xffff for broadcast */
 	net?: number
+	/** IP address or MAC address, etc. */
 	adr?: number[]
-	address?: string
-	forwardedFrom?: string
 }
 
-export interface ReceiverAddress {
+export interface DecodedAddress {
 	address: string
 	forwardedFrom?: string
 }
 
-export type AddressParameter = string | ReceiverAddress
+export interface DecodedNpdu {
+	len: number
+	funct: number
+	destination?: BACNetAddress
+	source?: BACNetAddress
+	hopCount: number
+	networkMsgType: number
+	vendorId: number
+}
+
+export type AddressParameter = string | DecodedAddress
 
 export interface PropertyReference {
 	id: PropertyIdentifier
@@ -378,7 +389,6 @@ export interface ClientOptions {
 export interface WhoIsOptions {
 	lowLimit?: number
 	highLimit?: number
-	address?: string
 }
 
 export interface ServiceOptions {
@@ -475,10 +485,7 @@ export interface ReinitializeDeviceOptions extends ServiceOptions {
 export interface BACnetMessageHeader {
 	apduType: number
 	expectingReply: boolean
-	sender: {
-		address: string
-		forwardedFrom: string | null
-	}
+	sender: DecodedAddress
 	func?: number
 	confirmedService?: boolean
 }
