@@ -10,7 +10,7 @@ test.describe('bacnet - confirmedEventNotification integration', () => {
 			const date = new Date()
 			date.setMilliseconds(880)
 			client.confirmedEventNotification(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				{
 					processId: 3,
 					initiatingObjectId: {},

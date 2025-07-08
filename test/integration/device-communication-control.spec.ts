@@ -8,7 +8,7 @@ test.describe('bacnet - deviceCommunicationControl integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.deviceCommunicationControl(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				60,
 				1,
 				{ password: 'Test1234' },

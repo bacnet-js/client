@@ -8,7 +8,7 @@ test.describe('bacnet - reinitializeDevice integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.reinitializeDevice(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				1,
 				{ password: 'Test1234' },
 				(err) => {

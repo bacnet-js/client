@@ -16,7 +16,7 @@ test.describe('bacnet - unconfirmedCOVNotification integration', () => {
 		}
 
 		client.unconfirmedCOVNotification(
-			'127.0.0.2',
+			{ address: '127.0.0.2' },
 			3,
 			433,
 			monitoredObjectId,

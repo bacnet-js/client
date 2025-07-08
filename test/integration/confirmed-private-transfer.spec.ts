@@ -8,7 +8,7 @@ test.describe('bacnet - confirmedPrivateTransfer integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.confirmedPrivateTransfer(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				0,
 				8,
 				[0x00, 0xaa, 0xfa, 0xb1, 0x00],

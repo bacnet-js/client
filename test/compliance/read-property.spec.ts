@@ -23,7 +23,7 @@ test.describe('bacnet - read property compliance', () => {
 	): Promise<DecodeAcknowledgeSingleResult> {
 		return new Promise<DecodeAcknowledgeSingleResult>((resolve, reject) => {
 			bacnetClient.readProperty(
-				address,
+				{ address },
 				objectId,
 				propertyId,
 				(err, value) => {

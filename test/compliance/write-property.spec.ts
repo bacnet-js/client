@@ -20,7 +20,7 @@ test.describe('bacnet - write property compliance', () => {
 	): Promise<any> {
 		return new Promise<any>((resolve, reject) => {
 			bacnetClient.readProperty(
-				address,
+				{ address },
 				objectId,
 				propertyId,
 				(err, value) => {
@@ -42,7 +42,7 @@ test.describe('bacnet - write property compliance', () => {
 	): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
 			bacnetClient.writeProperty(
-				address,
+				{ address },
 				objectId,
 				propertyId,
 				values,

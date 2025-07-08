@@ -8,7 +8,7 @@ test.describe('bacnet - readProperty integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.readProperty(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				{ type: 8, instance: 44301 },
 				28,
 				{},

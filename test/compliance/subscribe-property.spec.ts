@@ -23,7 +23,7 @@ test.describe('bacnet - subscribe property compliance', () => {
 	): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
 			bacnetClient.subscribeProperty(
-				address,
+				{ address },
 				objectId,
 				property,
 				subscribeId,

@@ -8,7 +8,7 @@ test.describe('bacnet - subscribeProperty integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.subscribeProperty(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				{ type: 5, instance: 33 },
 				{ id: 80, index: 0 },
 				8,

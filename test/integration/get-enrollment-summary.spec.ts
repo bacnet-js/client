@@ -8,7 +8,7 @@ test.describe('bacnet - getEnrollmentSummary integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.getEnrollmentSummary(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				0,
 				{ notificationClassFilter: 5 },
 				(err, value) => {

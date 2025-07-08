@@ -8,7 +8,7 @@ test.describe('bacnet - readRange integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.readRange(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				{ type: 20, instance: 0 },
 				0,
 				200,

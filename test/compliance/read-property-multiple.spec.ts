@@ -24,7 +24,7 @@ test.describe('bacnet - read property multiple compliance', () => {
 		return new Promise<DecodeAcknowledgeMultipleResult>(
 			(resolve, reject) => {
 				bacnetClient.readPropertyMultiple(
-					address,
+					{ address },
 					propertiesArray,
 					(err, value) => {
 						if (err) {

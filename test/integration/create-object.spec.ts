@@ -8,7 +8,7 @@ test.describe('bacnet - createObject integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.createObject(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				{ type: 2, instance: 300 },
 				[
 					{

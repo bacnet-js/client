@@ -8,7 +8,7 @@ test.describe('bacnet - writeFile integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.writeFile(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				{ type: 10, instance: 2 },
 				0,
 				[

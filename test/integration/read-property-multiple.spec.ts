@@ -15,7 +15,7 @@ test.describe('bacnet - readPropertyMultiple integration', () => {
 				},
 			]
 			client.readPropertyMultiple(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				requestArray,
 				{},
 				(err, value) => {
@@ -43,7 +43,7 @@ test.describe('bacnet - readPropertyMultiple integration', () => {
 				},
 			]
 			client.readPropertyMultiple(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				requestArray,
 				{},
 				(err, response) => {
@@ -146,7 +146,7 @@ test.describe('bacnet - readPropertyMultiple integration', () => {
 				},
 			]
 			client.readPropertyMultiple(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				requestArray,
 				{},
 				(err, response) => {

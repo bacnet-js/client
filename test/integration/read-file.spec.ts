@@ -8,7 +8,7 @@ test.describe('bacnet - readFile integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.readFile(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				{ type: 10, instance: 100 },
 				0,
 				100,

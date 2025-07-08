@@ -837,7 +837,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * @fires BACnetClient.iAm
 	 */
 	public whoIs(
-		receiverOrOptions: AddressParameter | WhoIsOptions,
+		receiverOrOptions?: AddressParameter | WhoIsOptions,
 		options?: WhoIsOptions,
 	): void {
 		let receiver: AddressParameter | undefined

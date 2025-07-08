@@ -8,7 +8,7 @@ test.describe('bacnet - addListElement integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.addListElement(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				{ type: 19, instance: 101 },
 				{ id: 80, index: 0 },
 				[{ type: 1, value: true }],

@@ -8,7 +8,7 @@ test.describe('bacnet - deleteObject integration', () => {
 		return new Promise((resolve) => {
 			const client = new utils.BacnetClient({ apduTimeout: 200 })
 			client.deleteObject(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				{ type: 2, instance: 15 },
 				{},
 				(err) => {

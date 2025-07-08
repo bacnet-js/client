@@ -7,7 +7,7 @@ test.describe('bacnet - unconfirmedEventNotification integration', () => {
 		const client = new utils.BacnetClient({ apduTimeout: 200 })
 		const date = new Date()
 		date.setMilliseconds(880)
-		client.unconfirmedEventNotification('127.0.0.2', {
+		client.unconfirmedEventNotification({ address: '127.0.0.2' }, {
 			processId: 3,
 			initiatingObjectId: { type: 60, instance: 12 },
 			eventObjectId: { type: 61, instance: 1121 },

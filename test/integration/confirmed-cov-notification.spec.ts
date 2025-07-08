@@ -17,7 +17,7 @@ test.describe('bacnet - confirmedCOVNotification integration', () => {
 			}
 
 			client.confirmedCOVNotification(
-				'127.0.0.2',
+				{ address: '127.0.0.2' },
 				monitoredObjectId,
 				3,
 				433,
