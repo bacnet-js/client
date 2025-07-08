@@ -47,7 +47,7 @@ test.describe('bacnet - write property multiple compliance', () => {
 	}
 
 	function asyncWritePropertyMultiple(
-		address: string,
+		receiver: BACNetAddress,
 		values: Array<{
 			objectId: BACNetObjectID
 			values: Array<{
@@ -62,31 +62,26 @@ test.describe('bacnet - write property multiple compliance', () => {
 			timeout?: boolean
 			error?: Error
 		}>((resolve, reject) => {
-			bacnetClient.writePropertyMultiple(
-				{ address },
-				values,
-				{},
-				(err) => {
-					if (err) {
-						if (err.message === 'ERR_TIMEOUT') {
-							utils.debug(
-								'Got timeout on write property multiple - acceptable in this environment',
-							)
-							resolve({ timeout: true })
-							return
-						}
-
-						if (err.message.includes('BacnetError')) {
-							resolve({ error: err })
-							return
-						}
-
-						reject(err)
-					} else {
-						resolve({ success: true })
+			bacnetClient.writePropertyMultiple(receiver, values, {}, (err) => {
+				if (err) {
+					if (err.message === 'ERR_TIMEOUT') {
+						utils.debug(
+							'Got timeout on write property multiple - acceptable in this environment',
+						)
+						resolve({ timeout: true })
+						return
 					}
-				},
-			)
+
+					if (err.message.includes('BacnetError')) {
+						resolve({ error: err })
+						return
+					}
+
+					reject(err)
+				} else {
+					resolve({ success: true })
+				}
+			})
 		})
 	}
 
