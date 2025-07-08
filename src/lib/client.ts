@@ -2419,7 +2419,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	/**
 	 * Sends a BACnet Virtual Link Control message.
 	 */
-	sendBvlc(receiver: BACNetAddress, buffer: EncodeBuffer): void {
+	sendBvlc(receiver: BACNetAddress | null, buffer: EncodeBuffer): void {
 		if (receiver && receiver.forwardedFrom) {
 			// Remote node address given, forward to BBMD
 			baBvlc.encode(
@@ -2444,7 +2444,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			)
 		}
 
-		this._transport.send(buffer.buffer, buffer.offset, receiver.address)
+		this._transport.send(buffer.buffer, buffer.offset, receiver?.address)
 	}
 
 	/**
