@@ -1702,11 +1702,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			BvlcResultPurpose.ORIGINAL_UNICAST_NPDU,
 			buffer.offset,
 		)
-		this._transport.send(
-			buffer.buffer,
-			buffer.offset,
-			(receiver && (receiver as { address?: string }).address) || null,
-		)
+		this._transport.send(buffer.buffer, buffer.offset, receiver.address)
 	}
 
 	/**
@@ -2448,11 +2444,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			)
 		}
 
-		this._transport.send(
-			buffer.buffer,
-			buffer.offset,
-			(receiver && receiver.address) || null,
-		)
+		this._transport.send(buffer.buffer, buffer.offset, receiver.address)
 	}
 
 	/**
