@@ -33,18 +33,60 @@ export interface BACNetAddress {
 	adr?: number[]
 }
 
+/**
+ * Decoded Network Protocol Data Unit (NPDU) structure
+ * Represents the parsed contents of a BACnet NPDU header according to ASHRAE 135-2020 Section 6.2
+ */
 export interface DecodedNpdu {
+	/** Total length of the NPDU header in bytes */
 	len: number
+
+	/**
+	 * NPDU control octet containing message type and flags
+	 * Bit flags from NpduControlBit enum indicating presence of optional fields
+	 */
 	funct: number
+
+	/**
+	 * Destination network address (optional)
+	 * Present when DESTINATION_SPECIFIED bit is set in funct
+	 * Contains network number and MAC address for routing
+	 */
 	destination?: BACNetAddress
+
+	/**
+	 * Source network address (optional)
+	 * Present when SOURCE_SPECIFIED bit is set in funct
+	 * Contains network number and MAC address of originating device
+	 */
 	source?: BACNetAddress
+
+	/**
+	 * Hop count for routed messages
+	 * Decremented by each router; message discarded when reaching 0
+	 * Only present when destination is specified
+	 */
 	hopCount: number
+
+	/**
+	 * Network layer message type
+	 * Values from NetworkLayerMessageType enum for network management messages
+	 * Only present when NETWORK_LAYER_MESSAGE bit is set in funct
+	 */
 	networkMsgType: number
+
+	/**
+	 * Vendor identifier for proprietary network messages
+	 * Only present for vendor-specific network messages (networkMsgType >= 0x80)
+	 * Identifies the vendor for proprietary message interpretation
+	 */
 	vendorId: number
 }
 
 export type AddressParameter = {
+	/** <ip>:<port> */
 	address: string
+	/** <ip>:<port> */
 	forwardedFrom?: string
 }
 
@@ -483,7 +525,7 @@ export interface ReinitializeDeviceOptions extends ServiceOptions {
 export interface BACnetMessageHeader {
 	apduType: number
 	expectingReply: boolean
-	sender: AddressParameter
+	sender: AddressParameter & BACNetAddress
 	func?: number
 	confirmedService?: boolean
 }

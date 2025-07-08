@@ -1,5 +1,3 @@
-import { buffer } from 'stream/consumers'
-import { vendorId } from '../../test/compliance/utils'
 import { NpduControlBit, NetworkLayerMessageType } from './enum'
 import {
 	EncodeBuffer,
@@ -116,15 +114,14 @@ export const encode = (
 ): void => {
 	// Convert AddressParameter to BACNetAddress if needed
 	let destination: BACNetAddress | undefined
-	if (destinationAddr && 'address' in destinationAddr) {
-		// Already a DecodedAddress object
+	if (destinationAddr && 'net' in destinationAddr) {
+		destination = destinationAddr
+	} else if (destinationAddr) {
 		destination = {
 			type: BACNET_ADDRESS_TYPES.IP,
 			net: 0, // Default to local network for decoded addresses
-			adr: [], // Address resolution handled elsewhere
+			adr: [], // Address resolution handled by transport layer
 		}
-	} else if (destinationAddr) {
-		destination = destinationAddr as BACNetAddress
 	}
 
 	const hasDestination = destination?.net > 0

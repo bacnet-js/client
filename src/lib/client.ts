@@ -724,6 +724,11 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			result.funct & NpduControlBit.EXPECTING_REPLY
 		)
 
+		if (result.source) {
+			header.sender.net = result.source.net
+			header.sender.adr = result.source.adr
+		}
+
 		this._handlePdu(buffer, offset, msgLength, header)
 	}
 
