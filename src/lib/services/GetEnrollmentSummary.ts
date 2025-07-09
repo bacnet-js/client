@@ -1,16 +1,22 @@
 import * as baAsn1 from '../asn1'
 import { ApplicationTag } from '../enum'
-import { EncodeBuffer } from '../types'
+import {
+	EncodeBuffer,
+	EnrollmentFilter,
+	EnrollmentSummary,
+	EnrollmentSummaryAcknowledge,
+	PriorityFilter,
+} from '../types'
 import { BacnetAckService } from './AbstractServices'
 
 export default class GetEnrollmentSummary extends BacnetAckService {
 	public static encode(
 		buffer: EncodeBuffer,
 		acknowledgmentFilter: number,
-		enrollmentFilter?: any,
+		enrollmentFilter?: EnrollmentFilter,
 		eventStateFilter?: number,
 		eventTypeFilter?: number,
-		priorityFilter?: any,
+		priorityFilter?: PriorityFilter,
 		notificationClassFilter?: number,
 	): void {
 		baAsn1.encodeContextEnumerated(buffer, 0, acknowledgmentFilter)
@@ -170,7 +176,7 @@ export default class GetEnrollmentSummary extends BacnetAckService {
 
 	public static encodeAcknowledge(
 		buffer: EncodeBuffer,
-		enrollmentSummaries: any[],
+		enrollmentSummaries: EnrollmentSummary[],
 	): void {
 		enrollmentSummaries.forEach((enrollmentSummary) => {
 			baAsn1.encodeApplicationObjectId(
@@ -198,59 +204,102 @@ export default class GetEnrollmentSummary extends BacnetAckService {
 		buffer: Buffer,
 		offset: number,
 		apduLen: number,
-	) {
+	): EnrollmentSummaryAcknowledge | undefined {
 		let len = 0
-		let result: any
-		const enrollmentSummaries = []
+		const enrollmentSummaries: EnrollmentSummary[] = []
 
 		while (apduLen - len > 0) {
-			const enrollmentSummary: any = {}
-
-			result = baAsn1.decodeTagNumberAndValue(buffer, offset + len)
-			len += result.len
-			if (result.tagNumber !== ApplicationTag.OBJECTIDENTIFIER)
-				return undefined
-
-			result = baAsn1.decodeObjectId(buffer, offset + len)
-			len += result.len
-			enrollmentSummary.objectId = {
-				type: result.objectType,
-				instance: result.instance,
+			const enrollmentSummary = {} as EnrollmentSummary
+			{
+				const result = baAsn1.decodeTagNumberAndValue(
+					buffer,
+					offset + len,
+				)
+				len += result.len
+				if (result.tagNumber !== ApplicationTag.OBJECTIDENTIFIER)
+					return undefined
 			}
 
-			result = baAsn1.decodeTagNumberAndValue(buffer, offset + len)
-			len += result.len
-			if (result.tagNumber !== ApplicationTag.ENUMERATED) return undefined
+			{
+				const result = baAsn1.decodeObjectId(buffer, offset + len)
+				len += result.len
+				enrollmentSummary.objectId = {
+					type: result.objectType,
+					instance: result.instance,
+				}
+			}
 
-			result = baAsn1.decodeEnumerated(buffer, offset + len, result.value)
-			len += result.len
-			enrollmentSummary.eventType = result.value
+			{
+				const result = baAsn1.decodeTagNumberAndValue(
+					buffer,
+					offset + len,
+				)
+				len += result.len
+				if (result.tagNumber !== ApplicationTag.ENUMERATED)
+					return undefined
 
-			result = baAsn1.decodeTagNumberAndValue(buffer, offset + len)
-			len += result.len
-			if (result.tagNumber !== ApplicationTag.ENUMERATED) return undefined
+				const decoded = baAsn1.decodeEnumerated(
+					buffer,
+					offset + len,
+					result.value,
+				)
+				len += decoded.len
+				enrollmentSummary.eventType = decoded.value
+			}
 
-			result = baAsn1.decodeEnumerated(buffer, offset + len, result.value)
-			len += result.len
-			enrollmentSummary.eventState = result.value
+			{
+				const result = baAsn1.decodeTagNumberAndValue(
+					buffer,
+					offset + len,
+				)
+				len += result.len
+				if (result.tagNumber !== ApplicationTag.ENUMERATED)
+					return undefined
 
-			result = baAsn1.decodeTagNumberAndValue(buffer, offset + len)
-			len += result.len
-			if (result.tagNumber !== ApplicationTag.UNSIGNED_INTEGER)
-				return undefined
+				const decoded = baAsn1.decodeEnumerated(
+					buffer,
+					offset + len,
+					result.value,
+				)
+				len += decoded.len
+				enrollmentSummary.eventState = decoded.value
+			}
 
-			result = baAsn1.decodeUnsigned(buffer, offset + len, result.value)
-			len += result.len
-			enrollmentSummary.priority = result.value
+			{
+				const result = baAsn1.decodeTagNumberAndValue(
+					buffer,
+					offset + len,
+				)
+				len += result.len
+				if (result.tagNumber !== ApplicationTag.UNSIGNED_INTEGER)
+					return undefined
 
-			result = baAsn1.decodeTagNumberAndValue(buffer, offset + len)
-			len += result.len
-			if (result.tagNumber !== ApplicationTag.UNSIGNED_INTEGER)
-				return undefined
+				const decoded = baAsn1.decodeUnsigned(
+					buffer,
+					offset + len,
+					result.value,
+				)
+				len += decoded.len
+				enrollmentSummary.priority = decoded.value
+			}
 
-			result = baAsn1.decodeUnsigned(buffer, offset + len, result.value)
-			len += result.len
-			enrollmentSummary.notificationClass = result.value
+			{
+				const result = baAsn1.decodeTagNumberAndValue(
+					buffer,
+					offset + len,
+				)
+				len += result.len
+				if (result.tagNumber !== ApplicationTag.UNSIGNED_INTEGER)
+					return undefined
+
+				const decoded = baAsn1.decodeUnsigned(
+					buffer,
+					offset + len,
+					result.value,
+				)
+				len += decoded.len
+				enrollmentSummary.notificationClass = decoded.value
+			}
 
 			enrollmentSummaries.push(enrollmentSummary)
 		}

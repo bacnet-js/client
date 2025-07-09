@@ -1,6 +1,11 @@
 import * as baAsn1 from '../asn1'
 import { ASN1_ARRAY_ALL, ReadRangeType } from '../enum'
-import { EncodeBuffer, BACNetObjectID, BACNetBitString } from '../types'
+import {
+	EncodeBuffer,
+	BACNetObjectID,
+	BACNetBitString,
+	ReadRangeAcknowledge,
+} from '../types'
 import { BacnetAckService } from './AbstractServices'
 
 export default class ReadRange extends BacnetAckService {
@@ -254,7 +259,7 @@ export default class ReadRange extends BacnetAckService {
 		buffer: Buffer,
 		offset: number,
 		apduLen: number,
-	) {
+	): ReadRangeAcknowledge {
 		let len = 0
 		let result: any
 		let decodedValue: any

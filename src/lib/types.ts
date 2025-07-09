@@ -471,14 +471,11 @@ export interface TargetResult {
 
 export type ErrorCallback = (err?: Error) => void
 
-export type DataCallback<T> = (err?: Error, result?: T) => void
+export type DataCallback<T = any> = (err?: Error, result?: T) => void
 
 export interface DecodeAcknowledgeSingleResult {
 	len: number
-	objectId: {
-		type: ObjectType
-		instance: number
-	}
+	objectId: BACNetObjectID
 	property: {
 		id: PropertyIdentifier
 		index: number
@@ -650,6 +647,46 @@ export interface ReadRangePayload extends BasicServicePayload {
 	position: number
 	count: number
 	values: BACNetAppData[]
+}
+
+export interface ReadRangeAcknowledge {
+	objectId: BACNetObjectID
+	property: PropertyIdentifier
+	resultFlag: BACNetBitString
+	itemCount: number
+	rangeBuffer: Buffer
+	len: number
+}
+
+export interface EnrollmentSummary {
+	objectId: BACNetObjectID
+	eventType: number
+	eventState: number
+	priority: number
+	notificationClass: number
+}
+
+export interface EnrollmentOptions extends ServiceOptions {
+	enrollmentFilter?: EnrollmentFilter
+	eventStateFilter?: number
+	eventTypeFilter?: number
+	priorityFilter?: PriorityFilter
+	notificationClassFilter?: number
+}
+
+export interface EnrollmentFilter {
+	objectId: BACNetObjectID
+	processId: number
+}
+
+export interface PriorityFilter {
+	min: number
+	max: number
+}
+
+export interface EnrollmentSummaryAcknowledge {
+	enrollmentSummaries: EnrollmentSummary[]
+	len: number
 }
 
 export interface ObjectOperationPayload extends BasicServicePayload {

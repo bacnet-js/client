@@ -85,6 +85,9 @@ import {
 	WritePropertyMultipleObject,
 	DecodeAtomicWriteFileResult,
 	DecodeAtomicReadFileResult,
+	ReadRangeAcknowledge,
+	EnrollmentOptions,
+	EnrollmentSummaryAcknowledge,
 } from './types'
 import { format } from 'util'
 import {
@@ -107,6 +110,14 @@ import {
 	PropertyIdentifier,
 	ReadRangeType,
 } from './enum'
+import {
+	ASYNC_METHODS,
+	AsyncMethods,
+	AsyncVersion,
+	promisify,
+} from './async-types'
+import { Buffer } from 'buffer'
+import { buffer } from 'stream/consumers'
 const debug = debugLib('bacnet:client:debug')
 const trace = debugLib('bacnet:client:trace')
 
@@ -156,46 +167,6 @@ const confirmedServiceMap: BACnetEventsMap = {
 	[beC.CONFIRMED_PRIVATE_TRANSFER]: 'privateTransfer',
 }
 
-// Convert a callback-based method to return a Promise
-type AsyncVersion<T> = T extends (
-	...args: [...infer P, DataCallback<infer R>]
-) => any
-	? (...args: P) => Promise<unknown extends R ? void : R>
-	: never
-
-// List of method names that should have async versions
-const ASYNC_METHODS = [
-	'readProperty',
-	'readPropertyMultiple',
-	'writeProperty',
-	'writePropertyMultiple',
-	'confirmedCOVNotification',
-	'deviceCommunicationControl',
-	'reinitializeDevice',
-	'writeFile',
-	'readFile',
-	'readRange',
-	'subscribeCov',
-	'subscribeProperty',
-	'createObject',
-	'deleteObject',
-	'removeListElement',
-	'addListElement',
-	'getAlarmSummary',
-	'getEventInformation',
-	'acknowledgeAlarm',
-	'confirmedPrivateTransfer',
-	'getEnrollmentSummary',
-	'confirmedEventNotification',
-] as const
-
-type AsyncMethodName = (typeof ASYNC_METHODS)[number]
-
-// Create async versions of selected methods
-type AsyncMethods<T> = {
-	[K in AsyncMethodName]: K extends keyof T ? AsyncVersion<T[K]> : never
-}
-
 /**
  * To be able to communicate to BACNET devices, you have to initialize a new bacnet instance.
  * @class BACnetClient
@@ -217,12 +188,12 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	private _invokeCounter = 1
 
 	private _invokeStore: {
-		[key: number]: (err: Error | null, data?: any) => void
+		[key: number]: DataCallback
 	} = {}
 
 	private _lastSequenceNumber = 0
 
-	private _segmentStore: any[] = []
+	private _segmentStore: Buffer[] = []
 
 	// Async property that contains promisified versions
 	public readonly async: AsyncMethods<this>
@@ -236,9 +207,12 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		// Automatically create async versions of specified methods
 		ASYNC_METHODS.forEach((methodName) => {
 			if (methodName in this && typeof this[methodName] === 'function') {
-				;(this.async as any)[methodName] = this.promisify(
-					this[methodName] as any,
+				;(this.async as any)[methodName] = promisify(
+					this,
+					this[methodName],
 				)
+			} else {
+				throw new Error(`Method ${methodName} is not a function`)
 			}
 		})
 
@@ -271,26 +245,6 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		this._transport.open()
 	}
 
-	private promisify<T extends (...args: any[]) => any>(
-		method: T,
-	): AsyncVersion<T> {
-		return ((...args: any[]) => {
-			return new Promise((resolve, reject) => {
-				const callback = (error?: Error, result?: any) => {
-					if (error) {
-						reject(error)
-					} else {
-						// For ErrorCallback (no result parameter), resolve with undefined
-						// For DataCallback, resolve with the result
-						resolve(result)
-					}
-				}
-
-				method.call(this, ...args, callback)
-			})
-		}) as AsyncVersion<T>
-	}
-
 	private _send(buffer: EncodeBuffer, receiver?: BACNetAddress) {
 		this._transport.send(buffer.buffer, buffer.offset, receiver?.address)
 	}
@@ -311,11 +265,8 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		trace(`Stored invokeId: ${Object.keys(this._invokeStore)}`)
 	}
 
-	private _addCallback(
-		id: number,
-		callback: (err: Error | null, data?: any) => void,
-	): void {
-		const toCall: (err: Error | null, data?: any) => void = (err, data) => {
+	private _addCallback(id: number, callback: DataCallback): void {
+		const toCall: DataCallback = (err, data) => {
 			delete this._invokeStore[id]
 			clearTimeout(timeout)
 
@@ -1068,7 +1019,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 
 		this._addCallback(settings.invokeId, (err, data) => {
 			if (err) {
-				return void (next as DataCallback<any>)(err)
+				return next(err)
 			}
 
 			const result = ReadProperty.decodeAcknowledge(
@@ -1077,12 +1028,10 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				data.length,
 			)
 			if (!result) {
-				return void (next as DataCallback<any>)(
-					new Error('INVALID_DECODING'),
-				)
+				return next(new Error('INVALID_DECODING'))
 			}
 
-			;(next as DataCallback<any>)(null, result)
+			next(null, result)
 		})
 	}
 
@@ -1569,10 +1518,10 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		objectId: BACNetObjectID,
 		idxBegin: number,
 		quantity: number,
-		options: ServiceOptions | DataCallback<any>,
-		next?: DataCallback<any>,
+		options: ServiceOptions | DataCallback<ReadRangeAcknowledge>,
+		next?: DataCallback<ReadRangeAcknowledge>,
 	): void {
-		next = next || (options as DataCallback<any>)
+		next = next || (options as DataCallback<ReadRangeAcknowledge>)
 		const settings = {
 			maxSegments:
 				(options as ServiceOptions).maxSegments ||
@@ -1670,15 +1619,12 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			lifetime,
 		)
 		this.sendBvlc(receiver, buffer)
-		this._addCallback(
-			settings.invokeId,
-			(err: Error | null, data?: any) => {
-				if (err) {
-					return void next!(err)
-				}
-				next!()
-			},
-		)
+		this._addCallback(settings.invokeId, (err, data) => {
+			if (err) {
+				return void next(err)
+			}
+			next()
+		})
 	}
 
 	/**
@@ -1728,15 +1674,12 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			0x0f,
 		)
 		this.sendBvlc(receiver, buffer)
-		this._addCallback(
-			settings.invokeId,
-			(err: Error | null, data?: any) => {
-				if (err) {
-					return void next!(err)
-				}
-				next!()
-			},
-		)
+		this._addCallback(settings.invokeId, (err, data) => {
+			if (err) {
+				return void next(err)
+			}
+			next()
+		})
 	}
 
 	/**
@@ -1819,15 +1762,12 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		)
 		CreateObject.encode(buffer, objectId, values)
 		this.sendBvlc(receiver, buffer)
-		this._addCallback(
-			settings.invokeId,
-			(err: Error | null, data?: any) => {
-				if (err) {
-					return void next!(err)
-				}
-				next!()
-			},
-		)
+		this._addCallback(settings.invokeId, (err, data) => {
+			if (err) {
+				return void next(err)
+			}
+			next()
+		})
 	}
 
 	/**
@@ -1863,15 +1803,12 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		)
 		DeleteObject.encode(buffer, objectId)
 		this.sendBvlc(receiver, buffer)
-		this._addCallback(
-			settings.invokeId,
-			(err: Error | null, data?: any) => {
-				if (err) {
-					return void next!(err)
-				}
-				next!()
-			},
-		)
+		this._addCallback(settings.invokeId, (err, data) => {
+			if (err) {
+				return void next(err)
+			}
+			next()
+		})
 	}
 
 	/**
@@ -1918,15 +1855,12 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			values,
 		)
 		this.sendBvlc(receiver, buffer)
-		this._addCallback(
-			settings.invokeId,
-			(err: Error | null, data?: any) => {
-				if (err) {
-					return void next!(err)
-				}
-				next!()
-			},
-		)
+		this._addCallback(settings.invokeId, (err, data) => {
+			if (err) {
+				return void next(err)
+			}
+			next()
+		})
 	}
 
 	/**
@@ -1973,15 +1907,12 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			values,
 		)
 		this.sendBvlc(receiver, buffer)
-		this._addCallback(
-			settings.invokeId,
-			(err: Error | null, data?: any) => {
-				if (err) {
-					return void next!(err)
-				}
-				next!()
-			},
-		)
+		this._addCallback(settings.invokeId, (err, data) => {
+			if (err) {
+				return void next(err)
+			}
+			next()
+		})
 	}
 
 	/**
@@ -2160,7 +2091,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		receiver: BACNetAddress,
 		vendorId: number,
 		serviceNumber: number,
-		data: any,
+		data: number[],
 		options: ServiceOptions | ErrorCallback,
 		next?: ErrorCallback,
 	): void {
@@ -2208,7 +2139,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		receiver: BACNetAddress,
 		vendorId: number,
 		serviceNumber: number,
-		data: any,
+		data: number[],
 	): void {
 		const buffer = this._getApduBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
@@ -2227,27 +2158,20 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	getEnrollmentSummary(
 		receiver: BACNetAddress,
 		acknowledgmentFilter: number,
-		options:
-			| (ServiceOptions & {
-					enrollmentFilter?: any
-					eventStateFilter?: any
-					eventTypeFilter?: any
-					priorityFilter?: any
-					notificationClassFilter?: any
-			  })
-			| DataCallback<any>,
-		next?: DataCallback<any>,
+		opts: EnrollmentOptions | DataCallback<EnrollmentSummaryAcknowledge>,
+		next?: DataCallback<EnrollmentSummaryAcknowledge>,
 	): void {
-		next = next || (options as DataCallback<any>)
+		if (typeof opts === 'function') {
+			next = opts as DataCallback<EnrollmentSummaryAcknowledge>
+			opts = {} as EnrollmentOptions
+		}
+
+		const options = opts as EnrollmentOptions
+
 		const settings: ServiceOptions = {
-			maxSegments:
-				(options as ServiceOptions).maxSegments ||
-				MaxSegmentsAccepted.SEGMENTS_65,
-			maxApdu:
-				(options as ServiceOptions).maxApdu ||
-				MaxApduLengthAccepted.OCTETS_1476,
-			invokeId:
-				(options as ServiceOptions).invokeId || this._getInvokeId(),
+			maxSegments: options.maxSegments || MaxSegmentsAccepted.SEGMENTS_65,
+			maxApdu: options.maxApdu || MaxApduLengthAccepted.OCTETS_1476,
+			invokeId: options.invokeId || this._getInvokeId(),
 		}
 		const buffer = this._getApduBuffer(receiver)
 		baNpdu.encode(
@@ -2268,11 +2192,11 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		GetEnrollmentSummary.encode(
 			buffer,
 			acknowledgmentFilter,
-			(options as any).enrollmentFilter,
-			(options as any).eventStateFilter,
-			(options as any).eventTypeFilter,
-			(options as any).priorityFilter,
-			(options as any).notificationClassFilter,
+			options.enrollmentFilter,
+			options.eventStateFilter,
+			options.eventTypeFilter,
+			options.priorityFilter,
+			options.notificationClassFilter,
 		)
 		this.sendBvlc(receiver, buffer)
 		this._addCallback(settings.invokeId, (err, data) => {
