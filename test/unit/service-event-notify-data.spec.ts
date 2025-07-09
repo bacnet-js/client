@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert'
 
 import * as utils from './utils'
-import { CovType } from '../../src'
+import { BACNetObjectID, CovType } from '../../src'
 import { EventNotifyData } from '../../src/lib/services'
 
 test.describe('bacnet - Services layer EventNotifyData unit', () => {
@@ -38,7 +38,7 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 			processId: 3,
 			initiatingObjectId: { type: 60, instance: 12 },
 			eventObjectId: { type: 61, instance: 1121 },
-			timeStamp: date,
+			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
 			eventType: 0,
@@ -56,8 +56,8 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 		date.setMilliseconds(880)
 		EventNotifyData.encode(buffer, {
 			processId: 3,
-			initiatingObjectId: {},
-			eventObjectId: {},
+			initiatingObjectId: {} as BACNetObjectID,
+			eventObjectId: {} as BACNetObjectID,
 			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
@@ -79,7 +79,7 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 			processId: 3,
 			initiatingObjectId: { type: 0, instance: 0 },
 			eventObjectId: { type: 0, instance: 0 },
-			timeStamp: date,
+			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
 			eventType: 1,
@@ -97,8 +97,8 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 		date.setMilliseconds(880)
 		EventNotifyData.encode(buffer, {
 			processId: 3,
-			initiatingObjectId: {},
-			eventObjectId: {},
+			initiatingObjectId: {} as BACNetObjectID,
+			eventObjectId: {} as BACNetObjectID,
 			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
@@ -111,6 +111,9 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 				bitsUsed: 24,
 				value: [0xaa, 0xaa, 0xaa],
 			},
+			ackRequired: false,
+			fromState: 0,
+			toState: 0,
 		})
 		const result = EventNotifyData.decode(buffer.buffer, 0)
 		delete result.len
@@ -118,7 +121,7 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 			processId: 3,
 			initiatingObjectId: { type: 0, instance: 0 },
 			eventObjectId: { type: 0, instance: 0 },
-			timeStamp: date,
+			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
 			eventType: 2,
@@ -136,8 +139,8 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 		date.setMilliseconds(880)
 		EventNotifyData.encode(buffer, {
 			processId: 3,
-			initiatingObjectId: {},
-			eventObjectId: {},
+			initiatingObjectId: {} as BACNetObjectID,
+			eventObjectId: {} as BACNetObjectID,
 			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
@@ -161,7 +164,7 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 			processId: 3,
 			initiatingObjectId: { type: 0, instance: 0 },
 			eventObjectId: { type: 0, instance: 0 },
-			timeStamp: date,
+			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
 			eventType: 4,
@@ -180,8 +183,8 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 		date.setMilliseconds(880)
 		EventNotifyData.encode(buffer, {
 			processId: 3,
-			initiatingObjectId: {},
-			eventObjectId: {},
+			initiatingObjectId: {} as BACNetObjectID,
+			eventObjectId: {} as BACNetObjectID,
 			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
@@ -192,6 +195,9 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 			outOfRangeStatusFlags: { bitsUsed: 24, value: [0xaa, 0xaa, 0xaa] },
 			outOfRangeDeadband: 50,
 			outOfRangeExceededLimit: 150,
+			ackRequired: false,
+			fromState: 0,
+			toState: 0,
 		})
 		const result = EventNotifyData.decode(buffer.buffer, 0)
 		delete result.len
@@ -199,7 +205,7 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 			processId: 3,
 			initiatingObjectId: { type: 0, instance: 0 },
 			eventObjectId: { type: 0, instance: 0 },
-			timeStamp: date,
+			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
 			eventType: 5,
@@ -218,8 +224,8 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 		date.setMilliseconds(880)
 		EventNotifyData.encode(buffer, {
 			processId: 3,
-			initiatingObjectId: {},
-			eventObjectId: {},
+			initiatingObjectId: {} as BACNetObjectID,
+			eventObjectId: {} as BACNetObjectID,
 			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
@@ -233,6 +239,9 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 				value: [0xaa, 0xaa, 0xaa],
 			},
 			changeOfLifeSafetyOperationExpected: 2,
+			ackRequired: false,
+			fromState: 0,
+			toState: 0,
 		})
 		const result = EventNotifyData.decode(buffer.buffer, 0)
 		delete result.len
@@ -240,7 +249,7 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 			processId: 3,
 			initiatingObjectId: { type: 0, instance: 0 },
 			eventObjectId: { type: 0, instance: 0 },
-			timeStamp: date,
+			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
 			eventType: 8,
@@ -258,8 +267,8 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 		date.setMilliseconds(880)
 		EventNotifyData.encode(buffer, {
 			processId: 3,
-			initiatingObjectId: {},
-			eventObjectId: {},
+			initiatingObjectId: {} as BACNetObjectID,
+			eventObjectId: {} as BACNetObjectID,
 			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
@@ -267,13 +276,16 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 			messageText: 'Test1234$',
 			notifyType: 1,
 			bufferReadyBufferProperty: {
-				objectId: { type: 65, instance: 2 },
+				objectId: { type: 0, instance: 2 },
 				id: 85,
 				arrayIndex: 3,
 				deviceIndentifier: { type: 8, instance: 443 },
 			},
 			bufferReadyPreviousNotification: 121,
 			bufferReadyCurrentNotification: 281,
+			ackRequired: false,
+			fromState: 0,
+			toState: 0,
 		})
 		const result = EventNotifyData.decode(buffer.buffer, 0)
 		delete result.len
@@ -281,7 +293,7 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 			processId: 3,
 			initiatingObjectId: { type: 0, instance: 0 },
 			eventObjectId: { type: 0, instance: 0 },
-			timeStamp: date,
+			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
 			eventType: 10,
@@ -299,8 +311,8 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 		date.setMilliseconds(880)
 		EventNotifyData.encode(buffer, {
 			processId: 3,
-			initiatingObjectId: {},
-			eventObjectId: {},
+			initiatingObjectId: {} as BACNetObjectID,
+			eventObjectId: {} as BACNetObjectID,
 			timeStamp: { type: 2, value: date },
 			notificationClass: 9,
 			priority: 7,
@@ -313,6 +325,9 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 				value: [0xaa, 0xaa, 0xaa],
 			},
 			unsignedRangeExceededLimit: 100,
+			ackRequired: false,
+			fromState: 0,
+			toState: 0,
 		})
 		const result = EventNotifyData.decode(buffer.buffer, 0)
 		delete result.len
@@ -320,7 +335,10 @@ test.describe('bacnet - Services layer EventNotifyData unit', () => {
 			processId: 3,
 			initiatingObjectId: { type: 0, instance: 0 },
 			eventObjectId: { type: 0, instance: 0 },
-			timeStamp: date,
+			timeStamp: {
+				type: 2,
+				value: date,
+			},
 			notificationClass: 9,
 			priority: 7,
 			eventType: 11,

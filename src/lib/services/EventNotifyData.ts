@@ -1,6 +1,10 @@
 import * as baAsn1 from '../asn1'
-import { CovType, EventType, NotifyType } from '../enum'
-import { EncodeBuffer, EventNotifyDataParams } from '../types'
+import { CovType, EventType, NotifyType, TimeStamp } from '../enum'
+import {
+	EncodeBuffer,
+	EventNotifyDataParams,
+	EventNotifyDataResult,
+} from '../types'
 import { BacnetService } from './AbstractServices'
 
 export default class EventNotifyData extends BacnetService {
@@ -251,11 +255,14 @@ export default class EventNotifyData extends BacnetService {
 		}
 	}
 
-	public static decode(buffer: Buffer, offset: number) {
+	public static decode(
+		buffer: Buffer,
+		offset: number,
+	): EventNotifyDataResult | undefined {
 		let len = 0
 		let result: any
 		let decodedValue: any
-		const eventData: any = {}
+		const eventData = {} as EventNotifyDataResult
 
 		if (!baAsn1.decodeIsContextTag(buffer, offset + len, 0))
 			return undefined
@@ -296,16 +303,18 @@ export default class EventNotifyData extends BacnetService {
 		decodedValue = baAsn1.decodeApplicationTime(buffer, offset + len)
 		len += decodedValue.len
 		const time = decodedValue.value
-		eventData.timeStamp = {}
-		eventData.timeStamp = new Date(
-			date.getFullYear(),
-			date.getMonth(),
-			date.getDate(),
-			time.getHours(),
-			time.getMinutes(),
-			time.getSeconds(),
-			time.getMilliseconds(),
-		)
+		eventData.timeStamp = {
+			type: TimeStamp.DATETIME,
+			value: new Date(
+				date.getFullYear(),
+				date.getMonth(),
+				date.getDate(),
+				time.getHours(),
+				time.getMinutes(),
+				time.getSeconds(),
+				time.getMilliseconds(),
+			),
+		}
 		len += 2
 
 		if (!baAsn1.decodeIsContextTag(buffer, offset + len, 4))

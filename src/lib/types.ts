@@ -701,7 +701,7 @@ export interface EventNotifyDataParams {
 		instance: number
 	}
 	timeStamp: {
-		type: number
+		type: TimeStamp,
 		value: Date | number
 	}
 	notificationClass: number
@@ -754,6 +754,10 @@ export interface EventNotifyDataParams {
 	unsignedRangeExceedingValue?: number
 	unsignedRangeStatusFlags?: BACNetBitString
 	unsignedRangeExceededLimit?: number
+}
+
+export interface EventNotifyDataResult extends EventNotifyDataParams {
+	len: number
 }
 
 export interface ObjectOperationPayload extends BasicServicePayload {
