@@ -17,6 +17,7 @@ import {
 	type Segmentation,
 	type Reliability,
 	type BinaryPV,
+	CovType,
 } from './enum'
 
 export interface EncodeBuffer {
@@ -687,6 +688,72 @@ export interface PriorityFilter {
 export interface EnrollmentSummaryAcknowledge {
 	enrollmentSummaries: EnrollmentSummary[]
 	len: number
+}
+
+export interface EventNotifyDataParams {
+	processId: number
+	initiatingObjectId: {
+		type: number
+		instance: number
+	}
+	eventObjectId: {
+		type: number
+		instance: number
+	}
+	timeStamp: {
+		type: number
+		value: Date | number
+	}
+	notificationClass: number
+	priority: number
+	eventType: EventType
+	messageText?: string
+	notifyType: NotifyType
+	ackRequired?: boolean
+	fromState?: number
+	toState: number
+
+	// CHANGE_OF_BITSTRING
+	changeOfBitstringReferencedBitString?: BACNetBitString
+	changeOfBitstringStatusFlags?: BACNetBitString
+
+	// CHANGE_OF_STATE
+	changeOfStateNewState?: BACNetPropertyState
+	changeOfStateStatusFlags?: BACNetBitString
+
+	// CHANGE_OF_VALUE
+	changeOfValueTag?: CovType
+	changeOfValueChangeValue?: number
+	changeOfValueChangedBits?: BACNetBitString
+	changeOfValueStatusFlags?: BACNetBitString
+
+	// FLOATING_LIMIT
+	floatingLimitReferenceValue?: number
+	floatingLimitStatusFlags?: BACNetBitString
+	floatingLimitSetPointValue?: number
+	floatingLimitErrorLimit?: number
+
+	// OUT_OF_RANGE
+	outOfRangeExceedingValue?: number
+	outOfRangeStatusFlags?: BACNetBitString
+	outOfRangeDeadband?: number
+	outOfRangeExceededLimit?: number
+
+	// CHANGE_OF_LIFE_SAFETY
+	changeOfLifeSafetyNewState?: number
+	changeOfLifeSafetyNewMode?: number
+	changeOfLifeSafetyStatusFlags?: BACNetBitString
+	changeOfLifeSafetyOperationExpected?: number
+
+	// BUFFER_READY
+	bufferReadyBufferProperty?: BACNetDevObjRef
+	bufferReadyPreviousNotification?: number
+	bufferReadyCurrentNotification?: number
+
+	// UNSIGNED_RANGE
+	unsignedRangeExceedingValue?: number
+	unsignedRangeStatusFlags?: BACNetBitString
+	unsignedRangeExceededLimit?: number
 }
 
 export interface ObjectOperationPayload extends BasicServicePayload {

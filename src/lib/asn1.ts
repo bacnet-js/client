@@ -2124,17 +2124,17 @@ const bacappDecodeContextApplicationData = (
 
 export const bacappEncodeTimestamp = (
 	buffer: EncodeBuffer,
-	value: { type: number; value: any },
+	value: { type: number; value: Date | number },
 ): void => {
 	switch (value.type) {
 		case TimeStamp.TIME:
-			encodeContextTime(buffer, 0, value.value)
+			encodeContextTime(buffer, 0, value.value as Date)
 			break
 		case TimeStamp.SEQUENCE_NUMBER:
-			encodeContextUnsigned(buffer, 1, value.value)
+			encodeContextUnsigned(buffer, 1, value.value as number)
 			break
 		case TimeStamp.DATETIME:
-			bacappEncodeContextDatetime(buffer, 2, value.value)
+			bacappEncodeContextDatetime(buffer, 2, value.value as Date)
 			break
 		default:
 			throw new Error('NOT_IMPLEMENTED')
@@ -2144,7 +2144,7 @@ export const bacappEncodeTimestamp = (
 export const bacappEncodeContextTimestamp = (
 	buffer: EncodeBuffer,
 	tagNumber: number,
-	value: { type: number; value: any },
+	value: { type: number; value: Date | number },
 ): void => {
 	encodeOpeningTag(buffer, tagNumber)
 	bacappEncodeTimestamp(buffer, value)

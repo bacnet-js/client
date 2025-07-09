@@ -1,10 +1,17 @@
 import * as baAsn1 from '../asn1'
-import { NotifyType, EventType, CovType } from '../enum'
-import { EncodeBuffer } from '../types'
+import { CovType, EventType, NotifyType } from '../enum'
+import { EncodeBuffer, EventNotifyDataParams } from '../types'
 import { BacnetService } from './AbstractServices'
 
 export default class EventNotifyData extends BacnetService {
-	public static encode(buffer: EncodeBuffer, data: any): void {
+	/**
+	 * EventNotifyData encode parameters as per BACnet standard
+	 */
+
+	public static encode(
+		buffer: EncodeBuffer,
+		data: EventNotifyDataParams,
+	): void {
 		baAsn1.encodeContextUnsigned(buffer, 0, data.processId)
 		baAsn1.encodeContextObjectId(
 			buffer,
