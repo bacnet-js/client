@@ -88,6 +88,7 @@ import {
 	ReadRangeAcknowledge,
 	EnrollmentOptions,
 	EnrollmentSummaryAcknowledge,
+	EventNotifyDataParams,
 } from './types'
 import { format } from 'util'
 import {
@@ -2220,7 +2221,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 */
 	unconfirmedEventNotification(
 		receiver: BACNetAddress,
-		eventNotification: any,
+		eventNotification: EventNotifyDataParams,
 	): void {
 		const buffer = this._getApduBuffer(receiver)
 		baNpdu.encode(buffer, NpduControlPriority.NORMAL_MESSAGE, receiver)
