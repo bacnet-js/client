@@ -2239,7 +2239,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 */
 	confirmedEventNotification(
 		receiver: BACNetAddress,
-		eventNotification: any,
+		eventNotification: EventNotifyDataParams,
 		options: ServiceOptions | ErrorCallback,
 		next?: ErrorCallback,
 	): void {
