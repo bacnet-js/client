@@ -701,7 +701,7 @@ export interface EventNotifyDataParams {
 		instance: number
 	}
 	timeStamp: {
-		type: TimeStamp,
+		type: TimeStamp
 		value: Date | number
 	}
 	notificationClass: number
