@@ -17,27 +17,6 @@ test.describe('bacnet - read property compliance', () => {
 	let discoveredAddress: BACNetAddress
 	const onClose: ((callback: () => void) => void) | null = null
 
-	function asyncReadProperty(
-		receiver: BACNetAddress,
-		objectId: BACNetObjectID,
-		propertyId: number,
-	): Promise<DecodeAcknowledgeSingleResult> {
-		return new Promise<DecodeAcknowledgeSingleResult>((resolve, reject) => {
-			bacnetClient.readProperty(
-				receiver,
-				objectId,
-				propertyId,
-				(err, value) => {
-					if (err) {
-						reject(err)
-					} else {
-						resolve(value)
-					}
-				},
-			)
-		})
-	}
-
 	test.before(async () => {
 		bacnetClient = new utils.bacnetClient({
 			apduTimeout: utils.apduTimeout,
@@ -88,10 +67,11 @@ test.describe('bacnet - read property compliance', () => {
 	})
 
 	test('read property VENDOR_NAME (121) from device', async () => {
-		const value = await asyncReadProperty(
+		const value = await bacnetClient.async.readProperty(
 			discoveredAddress,
 			{ type: 8, instance: utils.deviceUnderTest },
 			121,
+			{},
 		)
 
 		assert.ok(value, 'value should be an object')
@@ -116,10 +96,11 @@ test.describe('bacnet - read property compliance', () => {
 	})
 
 	test('read property PRESENT_VALUE from analog-output,2 from device', async () => {
-		const value = await asyncReadProperty(
+		const value = await bacnetClient.async.readProperty(
 			discoveredAddress,
 			{ type: 1, instance: 2 },
 			85,
+			{},
 		)
 
 		assert.ok(value, 'value should be an object')

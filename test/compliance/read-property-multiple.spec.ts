@@ -18,27 +18,6 @@ test.describe('bacnet - read property multiple compliance', () => {
 	let discoveredAddress: BACNetAddress
 	const onClose: ((callback: () => void) => void) | null = null
 
-	function asyncReadPropertyMultiple(
-		receiver: BACNetAddress,
-		propertiesArray: BACNetReadAccessSpecification[],
-	): Promise<DecodeAcknowledgeMultipleResult> {
-		return new Promise<DecodeAcknowledgeMultipleResult>(
-			(resolve, reject) => {
-				bacnetClient.readPropertyMultiple(
-					receiver,
-					propertiesArray,
-					(err, value) => {
-						if (err) {
-							reject(err)
-						} else {
-							resolve(value)
-						}
-					},
-				)
-			},
-		)
-	}
-
 	test.before(async () => {
 		bacnetClient = new utils.bacnetClient({
 			apduTimeout: utils.apduTimeout,
@@ -99,7 +78,11 @@ test.describe('bacnet - read property multiple compliance', () => {
 		]
 
 		try {
-			await asyncReadPropertyMultiple(discoveredAddress, requestArray)
+			await bacnetClient.async.readPropertyMultiple(
+				discoveredAddress,
+				requestArray,
+				{},
+			)
 			assert.fail('Expected an error but got none')
 		} catch (err: any) {
 			assert.ok(err, 'Error should be present')
@@ -118,9 +101,10 @@ test.describe('bacnet - read property multiple compliance', () => {
 				properties: [{ index: ASN1_ARRAY_ALL, id: 8 }],
 			},
 		]
-		const value = await asyncReadPropertyMultiple(
+		const value = await bacnetClient.async.readPropertyMultiple(
 			discoveredAddress,
 			requestArray,
+			{},
 		)
 
 		assert.ok(value, 'value should be an object')
@@ -158,9 +142,10 @@ test.describe('bacnet - read property multiple compliance', () => {
 				properties: [{ index: ASN1_ARRAY_ALL, id: 8 }],
 			},
 		]
-		const value = await asyncReadPropertyMultiple(
+		const value = await bacnetClient.async.readPropertyMultiple(
 			discoveredAddress,
 			requestArray,
+			{},
 		)
 
 		assert.ok(value, 'value should be an object')
@@ -201,9 +186,10 @@ test.describe('bacnet - read property multiple compliance', () => {
 					properties: [{ index: ASN1_ARRAY_ALL, id: 8 }],
 				},
 			]
-			const value = await asyncReadPropertyMultiple(
+			const value = await bacnetClient.async.readPropertyMultiple(
 				discoveredAddress,
 				requestArray,
+				{},
 			)
 
 			assert.ok(value, 'value should be an object')
@@ -254,7 +240,11 @@ test.describe('bacnet - read property multiple compliance', () => {
 					properties: [{ index: ASN1_ARRAY_ALL, id: 8 }],
 				},
 			]
-			const value = await asyncReadPropertyMultiple(null, requestArray)
+			const value = await bacnetClient.async.readPropertyMultiple(
+				null,
+				requestArray,
+				{},
+			)
 
 			assert.ok(value, 'value should be an object')
 			assert.ok(

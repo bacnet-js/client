@@ -17,51 +17,6 @@ test.describe('bacnet - write property compliance', () => {
 	let discoveredAddress: BACNetAddress
 	const onClose: ((callback: () => void) => void) | null = null
 
-	function asyncReadProperty(
-		receiver: BACNetAddress,
-		objectId: BACNetObjectID,
-		propertyId: number,
-	): Promise<any> {
-		return new Promise<any>((resolve, reject) => {
-			bacnetClient.readProperty(
-				receiver,
-				objectId,
-				propertyId,
-				(err, value) => {
-					if (err) {
-						reject(err)
-					} else {
-						resolve(value)
-					}
-				},
-			)
-		})
-	}
-
-	function asyncWriteProperty(
-		receiver: BACNetAddress,
-		objectId: BACNetObjectID,
-		propertyId: number,
-		values: BACNetAppData[],
-	): Promise<void> {
-		return new Promise<void>((resolve, reject) => {
-			bacnetClient.writeProperty(
-				receiver,
-				objectId,
-				propertyId,
-				values,
-				{},
-				(err) => {
-					if (err) {
-						reject(err)
-					} else {
-						resolve()
-					}
-				},
-			)
-		})
-	}
-
 	test.before(async () => {
 		bacnetClient = new utils.bacnetClient({
 			apduTimeout: utils.apduTimeout,
@@ -113,21 +68,23 @@ test.describe('bacnet - write property compliance', () => {
 	})
 
 	test('read property PRESENT_VALUE from analog-output,2 from device', async () => {
-		const value = await asyncReadProperty(
+		const value = await bacnetClient.async.readProperty(
 			discoveredAddress,
 			{ type: 1, instance: 2 },
 			85,
+			{},
 		)
 
 		assert.ok(value, 'value should be an object')
 	})
 
 	test('write property PRESENT_VALUE from analog-output,2 from device', async () => {
-		await asyncWriteProperty(
+		await bacnetClient.async.writeProperty(
 			discoveredAddress,
 			{ type: 1, instance: 2 },
 			85,
 			[{ type: 4, value: 100 }],
+			{},
 		)
 	})
 

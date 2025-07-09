@@ -17,34 +17,6 @@ test.describe('bacnet - subscribe property compliance', () => {
 	let discoveredAddress: BACNetAddress
 	const onClose: ((callback: () => void) => void) | null = null
 
-	function asyncSubscribeProperty(
-		receiver: BACNetAddress,
-		objectId: BACNetObjectID,
-		property: BACNetPropertyID,
-		subscribeId: number,
-		cancel: boolean,
-		issueConfirmedNotifications: boolean,
-	): Promise<void> {
-		return new Promise<void>((resolve, reject) => {
-			bacnetClient.subscribeProperty(
-				receiver,
-				objectId,
-				property,
-				subscribeId,
-				cancel,
-				issueConfirmedNotifications,
-				{},
-				(err) => {
-					if (err) {
-						reject(err)
-					} else {
-						resolve()
-					}
-				},
-			)
-		})
-	}
-
 	test.before(async () => {
 		bacnetClient = new utils.bacnetClient({
 			apduTimeout: utils.apduTimeout,
@@ -97,13 +69,14 @@ test.describe('bacnet - subscribe property compliance', () => {
 
 	test('subscribe property BINARY_VALUE,2 from device, expect not supported error', async () => {
 		try {
-			await asyncSubscribeProperty(
+			await bacnetClient.async.subscribeProperty(
 				discoveredAddress,
 				{ type: 5, instance: 2 },
 				{ id: 85, index: utils.index },
 				1000,
 				false,
 				false,
+				{},
 			)
 
 			assert.fail('Expected an error but got none')
