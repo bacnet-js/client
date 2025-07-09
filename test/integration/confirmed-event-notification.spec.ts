@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert'
 
 import * as utils from './utils'
+import { BACNetObjectID } from '../../src'
 
 test.describe('bacnet - confirmedEventNotification integration', () => {
 	test('should return a timeout error if no device is available', (t) => {
@@ -13,8 +14,8 @@ test.describe('bacnet - confirmedEventNotification integration', () => {
 				{ address: '127.0.0.2' },
 				{
 					processId: 3,
-					initiatingObjectId: {},
-					eventObjectId: {},
+					initiatingObjectId: {} as BACNetObjectID,
+					eventObjectId: {} as BACNetObjectID,
 					timeStamp: { type: 2, value: date },
 					notificationClass: 9,
 					priority: 7,
@@ -27,6 +28,9 @@ test.describe('bacnet - confirmedEventNotification integration', () => {
 						bitsUsed: 24,
 						value: [0xaa, 0xaa, 0xaa],
 					},
+					ackRequired: false,
+					fromState: 0,
+					toState: 0,
 				},
 				{},
 				(err) => {
