@@ -1,5 +1,18 @@
 # Changelog
 
+# [3.0.0](https://github.com/bacnet-js/client/compare/v2.1.5...v3.0.0) (2025-07-12)
+
+
+* feat!: replaces callbacks with promises for confirmed/acknowledged service methods (#52) ([65502f7](https://github.com/bacnet-js/client/commit/65502f7318462f1814d1b0dba0bac32b199f68a8)), closes [#52](https://github.com/bacnet-js/client/issues/52) [#50](https://github.com/bacnet-js/client/issues/50) [#51](https://github.com/bacnet-js/client/issues/51)
+* feat!: add async methods (#49) ([d32db02](https://github.com/bacnet-js/client/commit/d32db0256609a067d739d286bf9093e5da2a2f0a)), closes [#49](https://github.com/bacnet-js/client/issues/49)
+
+
+### BREAKING CHANGES
+
+* this PR changes the consumer-facing API of this
+library, replacing callbacks with promises
+* `EventNotifyData.decode` `timeStamp` property is an Object now with `{ value: <Date>, type: 2 }`
+
 ## [2.1.5](https://github.com/bacnet-js/client/compare/v2.1.4...v2.1.5) (2025-07-04)
 
 ## [2.1.4](https://github.com/bacnet-js/client/compare/v2.1.3...v2.1.4) (2025-06-30)
