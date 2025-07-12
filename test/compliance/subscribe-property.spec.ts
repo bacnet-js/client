@@ -69,7 +69,7 @@ test.describe('bacnet - subscribe property compliance', () => {
 
 	test('subscribe property BINARY_VALUE,2 from device, expect not supported error', async () => {
 		try {
-			await bacnetClient.async.subscribeProperty(
+			await bacnetClient.subscribeProperty(
 				discoveredAddress,
 				{ type: 5, instance: 2 },
 				{ id: 85, index: utils.index },

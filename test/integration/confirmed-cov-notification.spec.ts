@@ -8,15 +8,13 @@ import { ApplicationTag } from '../../src'
 
 test.describe('bacnet - confirmedCOVNotification integration', () => {
 	test('should return a timeout error if no device is available', async (t) => {
-		return new Promise<void>((resolve) => {
-			const client = new BACnetClient({ apduTimeout: 200 })
-
-			const monitoredObjectId: BACNetObjectID = {
-				type: 2,
-				instance: 122,
-			}
-
-			client.confirmedCOVNotification(
+		const client = new BACnetClient({ apduTimeout: 200 })
+		const monitoredObjectId: BACNetObjectID = {
+			type: 2,
+			instance: 122,
+		}
+		try {
+			await client.confirmedCOVNotification(
 				{ address: '127.0.0.2' },
 				monitoredObjectId,
 				3,
@@ -37,12 +35,11 @@ test.describe('bacnet - confirmedCOVNotification integration', () => {
 						],
 					},
 				],
-				(err) => {
-					assert.strictEqual(err.message, 'ERR_TIMEOUT')
-					client.close()
-					resolve()
-				},
+				{},
 			)
-		})
+		} catch (err) {
+			assert.strictEqual((err as Error).message, 'ERR_TIMEOUT')
+			client.close()
+		}
 	})
 })

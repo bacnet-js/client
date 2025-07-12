@@ -67,7 +67,7 @@ test.describe('bacnet - read property compliance', () => {
 	})
 
 	test('read property VENDOR_NAME (121) from device', async () => {
-		const value = await bacnetClient.async.readProperty(
+		const value = await bacnetClient.readProperty(
 			discoveredAddress,
 			{ type: 8, instance: utils.deviceUnderTest },
 			121,
@@ -96,7 +96,7 @@ test.describe('bacnet - read property compliance', () => {
 	})
 
 	test('read property PRESENT_VALUE from analog-output,2 from device', async () => {
-		const value = await bacnetClient.async.readProperty(
+		const value = await bacnetClient.readProperty(
 			discoveredAddress,
 			{ type: 1, instance: 2 },
 			85,

@@ -850,3 +850,10 @@ export interface DecodeAtomicReadFileResult {
 	position: number
 	buffer: Buffer
 }
+
+export interface NetworkOpResult {
+	msg: any
+	buffer: Buffer
+	offset: number
+	length: number
+}

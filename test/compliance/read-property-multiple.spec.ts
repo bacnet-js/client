@@ -78,7 +78,7 @@ test.describe('bacnet - read property multiple compliance', () => {
 		]
 
 		try {
-			await bacnetClient.async.readPropertyMultiple(
+			await bacnetClient.readPropertyMultiple(
 				discoveredAddress,
 				requestArray,
 				{},
@@ -101,7 +101,7 @@ test.describe('bacnet - read property multiple compliance', () => {
 				properties: [{ index: ASN1_ARRAY_ALL, id: 8 }],
 			},
 		]
-		const value = await bacnetClient.async.readPropertyMultiple(
+		const value = await bacnetClient.readPropertyMultiple(
 			discoveredAddress,
 			requestArray,
 			{},
@@ -142,7 +142,7 @@ test.describe('bacnet - read property multiple compliance', () => {
 				properties: [{ index: ASN1_ARRAY_ALL, id: 8 }],
 			},
 		]
-		const value = await bacnetClient.async.readPropertyMultiple(
+		const value = await bacnetClient.readPropertyMultiple(
 			discoveredAddress,
 			requestArray,
 			{},
@@ -186,7 +186,7 @@ test.describe('bacnet - read property multiple compliance', () => {
 					properties: [{ index: ASN1_ARRAY_ALL, id: 8 }],
 				},
 			]
-			const value = await bacnetClient.async.readPropertyMultiple(
+			const value = await bacnetClient.readPropertyMultiple(
 				discoveredAddress,
 				requestArray,
 				{},
@@ -240,7 +240,7 @@ test.describe('bacnet - read property multiple compliance', () => {
 					properties: [{ index: ASN1_ARRAY_ALL, id: 8 }],
 				},
 			]
-			const value = await bacnetClient.async.readPropertyMultiple(
+			const value = await bacnetClient.readPropertyMultiple(
 				null,
 				requestArray,
 				{},

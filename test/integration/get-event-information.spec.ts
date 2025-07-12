@@ -4,21 +4,18 @@ import assert from 'node:assert'
 import * as utils from './utils'
 
 test.describe('bacnet - getEventInformation integration', () => {
-	test('should return a timeout error if no device is available', (t) => {
-		return new Promise((resolve) => {
-			const client = new utils.BacnetClient({ apduTimeout: 200 })
-			client.getEventInformation(
+	test('should return a timeout error if no device is available', async (t) => {
+		const client = new utils.BacnetClient({ apduTimeout: 200 })
+		try {
+			await client.getEventInformation(
 				{ address: '127.0.0.2' },
 				{ type: 5, instance: 33 },
 				{},
-				(err, value) => {
-					assert.strictEqual(err.message, 'ERR_TIMEOUT')
-					assert.strictEqual(value, undefined)
-					client.close()
-					resolve()
-				},
 			)
-		})
+		} catch (err) {
+			assert.strictEqual((err as Error).message, 'ERR_TIMEOUT')
+			client.close()
+		}
 	})
 	test('should correctly parse a request without the optional "Last Received Object Identifier" parameter (see clause 13.12 of the spec)', (t) => {
 		return new Promise((resolve) => {

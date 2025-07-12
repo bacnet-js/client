@@ -65,7 +65,7 @@ test.describe('bacnet - write property multiple compliance', () => {
 
 	test('read property PRESENT_VALUE from analog-output,2 from device', async () => {
 		try {
-			const result = await bacnetClient.async.readProperty(
+			const result = await bacnetClient.readProperty(
 				discoveredAddress,
 				{ type: 1, instance: 2 },
 				85,
@@ -93,7 +93,7 @@ test.describe('bacnet - write property multiple compliance', () => {
 		]
 
 		let error: Error
-		await bacnetClient.async
+		await bacnetClient
 			.writePropertyMultiple(discoveredAddress, values, {})
 			.catch((err: Error) => {
 				error = err
@@ -109,7 +109,7 @@ test.describe('bacnet - write property multiple compliance', () => {
 	})
 
 	test('read property PRESENT_VALUE from analog-output,2 from device, expect written value', async () => {
-		const result = await bacnetClient.async.readProperty(
+		const result = await bacnetClient.readProperty(
 			discoveredAddress,
 			{ type: 1, instance: 2 },
 			85,
