@@ -17,6 +17,7 @@ import {
 	type Segmentation,
 	type Reliability,
 	type BinaryPV,
+	type NodeType,
 	CovType,
 } from './enum'
 
@@ -223,6 +224,7 @@ export interface ApplicationTagValueTypeMap {
 		| Segmentation
 		| Reliability
 		| BinaryPV
+		| NodeType
 	[ApplicationTag.DATE]: Date
 	[ApplicationTag.TIME]: Date
 	[ApplicationTag.OBJECTIDENTIFIER]: BACNetObjectID
