@@ -1,6 +1,6 @@
 {
   "name": "@bacnet-js/client",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A BACnet® protocol stack written in pure TypeScript.",
   "main": "./dist/index.js",
   "dependencies": {
