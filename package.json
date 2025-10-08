@@ -32,30 +32,6 @@
     "emulator:start": "node --require esbuild-register emulator/bacnet-device-emulator.ts",
     "release": "read -p 'GITHUB_TOKEN: ' GITHUB_TOKEN && export GITHUB_TOKEN=$GITHUB_TOKEN && release-it"
   },
-  "release-it": {
-    "github": {
-      "release": true
-    },
-    "git": {
-      "tagName": "v${version}",
-      "requireBranch": "master",
-      "commitMessage": "chore(release): ${version}"
-    },
-    "hooks": {
-      "before:init": [
-        "npm run build"
-      ]
-    },
-    "npm": {
-      "publish": true
-    },
-    "plugins": {
-      "@release-it/conventional-changelog": {
-        "preset": "angular",
-        "infile": "CHANGELOG.md"
-      }
-    }
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bacnet-js/client.git"
