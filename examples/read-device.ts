@@ -1,6 +1,13 @@
 /**
  * This script will discover all devices in the network and read out all
- * properties and deliver a JSON as device description
+ * properties and deliver a JSON as device description.
+ * 
+ * CAUTION: propSubSet is a very large list of items that it grabs and over 
+ * 	MSTP it may take too long to grab them all, causing a timeout, especially
+ *  if the device does not support Read Prop Multiple.  If using MSTP then you 
+ *  may want to shorten that list, or not grab OBJECT_LIST as grabbing this 
+ *  will cause the demo to grab properties for all objects on the device (without
+ *  OBJECT_LIST it will only grab the device object).
  *
  * If a deviceId is given as first parameter then only this device is discovered
  */
@@ -36,7 +43,6 @@ import Bacnet, {
 	ServicesSupported,
 	ShedState,
 	StatusFlags,
-	ApplicationData,
 	BACnetMessage,
 	DeviceObjectResult,
 	PropertyResult,
@@ -244,17 +250,21 @@ function getAllPropertiesManually(
 		)
 	}
 
+	if (debug)console.log("Read single prop " + prop);
+
 	// Read only object-list property
 	bacnetClient.readProperty(
 		address,
 		objectId,
 		prop,
-		{}, // Options object
-		(err, value) => {
-			if (!err && value) {
-				if (debug) {
-					console.log(`Handle value ${prop}: `, JSON.stringify(value))
-				}
+		{}
+	).then
+	(
+		function(value) 
+		{
+			if (value) {	// Options object
+				if (debug) console.log(`Handle value ${prop}: `, JSON.stringify(value))
+
 				const objRes: PropertyResult = {
 					id: value.property.id,
 					index: value.property.index,
@@ -262,7 +272,7 @@ function getAllPropertiesManually(
 				}
 				result.push(objRes)
 			} else {
-				// console.log('Device do not contain object ' + getEnumName(PropertyIdentifier, prop));
+				if (debug) console.log(`NULL device ${JSON.stringify(objectId)} ${JSON.stringify(address)} do not contain object ${getEnumName(PropertyIdentifier, prop)}`);
 			}
 			getAllPropertiesManually(
 				address,
@@ -272,6 +282,17 @@ function getAllPropertiesManually(
 				result,
 			)
 		},
+		function(err) 
+		{
+			if (debug) console.log(`ERR ${err} device ${JSON.stringify(objectId)} ${JSON.stringify(address)} do not contain object ${getEnumName(PropertyIdentifier, prop)}`);
+			getAllPropertiesManually(
+				address,
+				objectId,
+				callback,
+				propList,
+				result,
+			)
+		}
 	)
 }
 
@@ -447,8 +468,10 @@ function parseValue(
 					]
 					bacnetClient.readPropertyMultiple(
 						address,
-						requestArray,
-						(err, resValue) => {
+						requestArray
+					).then
+					(
+						function(resValue) {
 							//console.log(JSON.stringify(value.value) + ': ' + JSON.stringify(resValue));
 							parseDeviceObject(
 								address,
@@ -458,7 +481,9 @@ function parseValue(
 								callback,
 							)
 						},
-					)
+						function(err) {
+						}
+					);
 					return
 				} else {
 					getAllPropertiesManually(address, value.value, (result) => {
@@ -706,13 +731,6 @@ function printResultObject(deviceId: number, obj: Record<string, any>): void {
 	console.log(JSON.stringify(obj))
 	console.log()
 	console.log()
-
-	if (objectsDone === Object.keys(knownDevices).length) {
-		setTimeout(() => {
-			bacnetClient.close()
-			console.log(`closed transport ${Date.now()}`)
-		}, 1000)
-	}
 }
 
 let limitToDevice: number | null = null
@@ -742,7 +760,12 @@ bacnetClient.on('error', (err: Error) => {
 bacnetClient.on('listening', () => {
 	console.log(`sent whoIs ${Date.now()}`)
 	// discover devices once we are listening
-	bacnetClient.whoIs()
+	bacnetClient.whoIs({net: 0xffff})
+
+	setTimeout(() => {
+		bacnetClient.close()
+		console.log(`closed transport ${Date.now()}`)
+	}, 30000)
 })
 
 const knownDevices: number[] = []
@@ -779,10 +802,24 @@ bacnetClient.on('iAm', (device) => {
 		},
 	]
 
-	bacnetClient.readPropertyMultiple(address, requestArray, (err, value) => {
-		if (err) {
+	bacnetClient.readPropertyMultiple(address, requestArray).then
+	(
+  		function(value)
+		{
+			console.log(deviceId, 'ReadPropertyMultiple supported ...')
+			parseDeviceObject(
+				address,
+				value,
+				{ type: 8, instance: deviceId },
+				true,
+				(res) => printResultObject(deviceId, res),
+			)
+		},
+  		function(err)
+		{
 			console.log(
 				deviceId,
+				address,
 				'No ReadPropertyMultiple supported:',
 				err.message,
 			)
@@ -799,15 +836,6 @@ bacnetClient.on('iAm', (device) => {
 					)
 				},
 			)
-		} else {
-			console.log(deviceId, 'ReadPropertyMultiple supported ...')
-			parseDeviceObject(
-				address,
-				value,
-				{ type: 8, instance: deviceId },
-				true,
-				(res) => printResultObject(deviceId, res),
-			)
 		}
-	})
+	)
 })
