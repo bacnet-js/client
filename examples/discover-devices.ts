@@ -7,7 +7,7 @@
 import Bacnet, {
 	PropertyIdentifier,
 	BACNetObjectID,
-	DecodeAcknowledgeSingleResult,
+	ObjectType
 } from '../src'
 
 // create instance of Bacnet
@@ -23,7 +23,7 @@ bacnetClient.on('error', (err: Error) => {
 bacnetClient.on('listening', () => {
 	console.log('discovering devices for 30 seconds ...')
 	// discover devices once we are listening
-	bacnetClient.whoIs()
+	bacnetClient.whoIs({net: 0xffff});
 
 	setTimeout(() => {
 		bacnetClient.close()
@@ -49,48 +49,45 @@ bacnetClient.on('iAm', (device: any) => {
 	const deviceId = device.payload.deviceId
 	if (knownDevices.includes(deviceId)) return
 
-	const deviceObjectId: BACNetObjectID = { type: 8, instance: deviceId }
+	const deviceObjectId: BACNetObjectID = { type: ObjectType.DEVICE, instance: deviceId }
+
+	console.log('Starting read properties on ID ' + deviceId);
 
 	bacnetClient.readProperty(
 		address,
 		deviceObjectId,
 		PropertyIdentifier.OBJECT_NAME,
-		(err, value: DecodeAcknowledgeSingleResult | undefined) => {
-			if (err) {
-				console.log(
-					`Found Device ${deviceId} on ${JSON.stringify(address)}`,
-				)
-				console.log(err)
-			} else {
-				bacnetClient.readProperty(
-					address,
-					deviceObjectId,
-					PropertyIdentifier.VENDOR_NAME,
-					(err2, valueVendor) => {
-						if (value && value.values && value.values[0]?.value) {
-							console.log(
-								`Found Device ${deviceId} on ${JSON.stringify(address)}: ${value.values[0].value}`,
-							)
-						} else {
-							console.log(
-								`Found Device ${deviceId} on ${JSON.stringify(address)}`,
-							)
-							console.log('value: ', JSON.stringify(value))
-						}
-						if (
-							!err2 &&
-							valueVendor?.values &&
-							valueVendor.values[0]?.value
-						) {
-							console.log(
-								`Vendor: ${valueVendor.values[0].value}`,
-							)
-						}
-						console.log()
-					},
-				)
-			}
+		{}
+	).then 
+	(
+		function(result_OBJECT_NAME) 
+		{
+			bacnetClient.readProperty(
+				address,
+				deviceObjectId,
+				PropertyIdentifier.VENDOR_NAME,
+				{}
+			).then
+			(
+				function(result_VENDOR_NAME) 
+				{
+					console.log(`OK Found Device ${deviceId} on ${JSON.stringify(address)}`);
+					console.log(result_OBJECT_NAME);
+					console.log(result_VENDOR_NAME);
+				},
+				function(error) 
+				{
+					console.log(`ERROR2 reading Device ${deviceId} on ${JSON.stringify(address)}`);
+					console.log(error);
+				}
+			)
 		},
-	)
+  		function(error) 
+		{
+			console.log(`ERROR reading Device ${deviceId} on ${JSON.stringify(address)}`);
+			console.log(error);
+		}
+	);
+
 	knownDevices.push(deviceId)
 })

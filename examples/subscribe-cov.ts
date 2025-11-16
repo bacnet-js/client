@@ -29,7 +29,7 @@ bacnetClient.on('error', (err: Error) => {
 bacnetClient.on('listening', () => {
 	console.log(`sent whoIs ${Date.now()}`)
 	// discover devices once we are listening
-	bacnetClient.whoIs()
+	bacnetClient.whoIs({net: 0xffff})
 })
 
 // emitted when "Change of object" Messages are coming in
@@ -73,11 +73,12 @@ bacnetClient.on('iAm', (device: any) => {
 		false,
 		false,
 		0,
-		options,
-		(err) => {
-			console.log(`subscribeCOV${err ? err : ''}`)
-		},
-	)
+		options
+	).then
+	(
+		function(result) {},
+		function(err) {console.log(`subscribeCOV${err ? err : ''}`);}
+	);
 
 	// after 20s re-subscribe but with 1s lifetime to stop it
 	// I had issues with "cancel" call with the simulated device
@@ -89,11 +90,12 @@ bacnetClient.on('iAm', (device: any) => {
 			false,
 			false,
 			1,
-			options,
-			(err) => {
-				console.log(`UnsubscribeCOV${err ? err : ''}`)
-			},
-		)
+			options
+		).then
+		(
+			function(result) {},
+			function(err) {console.log(`UnsubscribeCOV${err ? err : ''}`);}
+		);
 	}, 20000)
 })
 
