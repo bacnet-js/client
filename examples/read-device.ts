@@ -209,13 +209,12 @@ const debug = process.argv.includes('--debug')
 /**
  * Retrieve all properties manually because ReadPropertyMultiple is not available
  */
-function getAllPropertiesManually(
+async function getAllPropertiesManually(
 	address: BACNetAddress,
 	objectId: BACNetObjectID,
-	callback: (result: DeviceObjectResult) => void,
 	propList?: number[],
 	result?: PropertyResult[],
-): void {
+): Promise<DeviceObjectResult> {
 	if (!propList) {
 		propList = propSubSet.map((x) => x) // Clone the array
 	}
@@ -223,56 +222,45 @@ function getAllPropertiesManually(
 		result = []
 	}
 	if (!propList.length) {
-		return callback({
+		return {
 			values: [
 				{
 					objectId,
 					values: result,
 				},
 			],
-		})
+		}
 	}
 
 	const prop = propList.shift()
 	if (prop === undefined) {
-		return getAllPropertiesManually(
-			address,
-			objectId,
-			callback,
-			propList,
-			result,
-		)
+		return getAllPropertiesManually(address, objectId, propList, result)
 	}
 
 	// Read only object-list property
-	bacnetClient.readProperty(
-		address,
-		objectId,
-		prop,
-		{}, // Options object
-		(err, value) => {
-			if (!err && value) {
-				if (debug) {
-					console.log(`Handle value ${prop}: `, JSON.stringify(value))
-				}
-				const objRes: PropertyResult = {
-					id: value.property.id,
-					index: value.property.index,
-					value: value.values,
-				}
-				result.push(objRes)
-			} else {
-				// console.log('Device do not contain object ' + getEnumName(PropertyIdentifier, prop));
+	try {
+		const value = await bacnetClient.readProperty(
+			address,
+			objectId,
+			prop,
+			{}, // Options object
+		)
+		if (value) {
+			if (debug) {
+				console.log(`Handle value ${prop}: `, JSON.stringify(value))
 			}
-			getAllPropertiesManually(
-				address,
-				objectId,
-				callback,
-				propList,
-				result,
-			)
-		},
-	)
+			const objRes: PropertyResult = {
+				id: value.property.id,
+				index: value.property.index,
+				value: value.values,
+			}
+			result.push(objRes)
+		}
+	} catch (err) {
+		// console.log('Device do not contain object ' + getEnumName(PropertyIdentifier, prop));
+	}
+
+	return getAllPropertiesManually(address, objectId, propList, result)
 }
 
 /**
@@ -334,14 +322,13 @@ function handleBitString(
 /**
  * Parses a property value
  */
-function parseValue(
+async function parseValue(
 	address: BACNetAddress,
 	objId: number,
 	parentType: number,
 	value: any,
 	supportsMultiple: boolean,
-	callback: (result: any) => void,
-): void {
+): Promise<any> {
 	let resValue: any = null
 	if (
 		value &&
@@ -445,32 +432,32 @@ function parseValue(
 							properties: [{ id: 8, index: 0 }],
 						},
 					]
-					bacnetClient.readPropertyMultiple(
-						address,
-						requestArray,
-						(err, resValue) => {
-							//console.log(JSON.stringify(value.value) + ': ' + JSON.stringify(resValue));
-							parseDeviceObject(
+					try {
+						const resValueData =
+							await bacnetClient.readPropertyMultiple(
 								address,
-								resValue,
-								value.value,
-								true,
-								callback,
+								requestArray,
 							)
-						},
-					)
-					return
-				} else {
-					getAllPropertiesManually(address, value.value, (result) => {
-						parseDeviceObject(
+						return await parseDeviceObject(
 							address,
-							result,
+							resValueData,
 							value.value,
-							false,
-							callback,
+							true,
 						)
-					})
-					return
+					} catch (err) {
+						resValue = value.value
+					}
+				} else {
+					const result = await getAllPropertiesManually(
+						address,
+						value.value,
+					)
+					return await parseDeviceObject(
+						address,
+						result,
+						value.value,
+						false,
+					)
 				}
 				break
 			case ApplicationTag.OCTET_STRING:
@@ -491,15 +478,13 @@ function parseValue(
 				resValue = value.value
 				break
 			case ApplicationTag.CONTEXT_SPECIFIC_DECODED:
-				parseValue(
+				return await parseValue(
 					address,
 					objId,
 					parentType,
 					value.value,
 					supportsMultiple,
-					callback,
 				)
-				return
 			case ApplicationTag.READ_ACCESS_RESULT: // ????
 				resValue = value.value
 				break
@@ -511,19 +496,18 @@ function parseValue(
 		}
 	}
 
-	setImmediate(() => callback(resValue))
+	return resValue
 }
 
 /**
  * Parse an object structure
  */
-function parseDeviceObject(
+async function parseDeviceObject(
 	address: BACNetAddress,
 	obj: DeviceObjectResult | any,
 	parent: BACNetObjectID,
 	supportsMultiple: boolean,
-	callback: (result: Record<string, any>) => void,
-): void {
+): Promise<Record<string, any>> {
 	if (debug) {
 		console.log(
 			`START parseDeviceObject: ${JSON.stringify(parent)} : ${JSON.stringify(obj)}`,
@@ -532,59 +516,20 @@ function parseDeviceObject(
 
 	if (!obj) {
 		console.log('object not valid on parse device object')
-		return
+		return { ERROR: 'object not valid' }
 	}
 
 	if (!obj.values || !Array.isArray(obj.values)) {
 		console.log('No device or invalid response')
-		callback({ ERROR: 'No device or invalid response' })
-		return
+		return { ERROR: 'No device or invalid response' }
 	}
 
-	let cbCount = 0
 	const objDefMap = new Map<string, Map<string, any[]>>()
 
-	const finalize = () => {
-		const resultObj: Record<string, Record<string, any>> = {}
-
-		objDefMap.forEach((propMap, devIdKey) => {
-			const deviceObj: Record<string, any> = {}
-			resultObj[devIdKey] = deviceObj
-
-			propMap.forEach((valueArray, propIdKey) => {
-				deviceObj[propIdKey] =
-					valueArray.length === 1 ? valueArray[0] : valueArray
-			})
-		})
-
-		if (
-			obj.values.length === 1 &&
-			obj.values[0]?.objectId?.instance !== undefined
-		) {
-			const firstDeviceId = String(obj.values[0].objectId.instance)
-			if (resultObj[firstDeviceId]) {
-				if (debug) {
-					console.log(
-						`END parseDeviceObject (single device): ${JSON.stringify(parent)} : ${JSON.stringify(resultObj[firstDeviceId])}`,
-					)
-				}
-				callback(resultObj[firstDeviceId])
-				return
-			}
-		}
-
-		if (debug) {
-			console.log(
-				`END parseDeviceObject (multiple devices): ${JSON.stringify(parent)} : ${JSON.stringify(resultObj)}`,
-			)
-		}
-		callback(resultObj)
-	}
-
-	obj.values.forEach((devBaseObj: any) => {
+	for (const devBaseObj of obj.values) {
 		if (!devBaseObj.objectId) {
 			console.log('No device Id found in object data')
-			return
+			continue
 		}
 
 		if (
@@ -592,12 +537,12 @@ function parseDeviceObject(
 			devBaseObj.objectId.instance === undefined
 		) {
 			console.log('No device type or instance found in object data')
-			return
+			continue
 		}
 
 		if (!devBaseObj.values || !Array.isArray(devBaseObj.values)) {
 			console.log('No device values response')
-			return
+			continue
 		}
 
 		const deviceId = String(devBaseObj.objectId.instance)
@@ -608,9 +553,9 @@ function parseDeviceObject(
 			objDefMap.set(deviceId, deviceMap)
 		}
 
-		devBaseObj.values.forEach((devObj: any) => {
+		for (const devObj of devBaseObj.values) {
 			if (devObj.id === undefined) {
-				return
+				continue
 			}
 
 			let objId = getEnumName(PropertyIdentifier, devObj.id)
@@ -620,7 +565,7 @@ function parseDeviceObject(
 
 			if (!objId) {
 				console.log('Invalid property identifier:', devObj.id)
-				return
+				continue
 			}
 
 			if (debug) {
@@ -634,10 +579,10 @@ function parseDeviceObject(
 
 			if (!Array.isArray(devObj.value)) {
 				console.log('Device object value is not an array:', devObj)
-				return
+				continue
 			}
 
-			devObj.value.forEach((val: any) => {
+			for (const val of devObj.value) {
 				let propArray = deviceMap.get(objId)
 				if (!propArray) {
 					propArray = []
@@ -646,52 +591,77 @@ function parseDeviceObject(
 
 				if (JSON.stringify(val.value) === JSON.stringify(parent)) {
 					propArray.push(val.value)
-					return
+					continue
 				}
 
-				cbCount++
-				parseValue(
+				const parsedValue = await parseValue(
 					address,
 					devObj.id,
 					parent.type,
 					val,
 					supportsMultiple,
-					(parsedValue) => {
-						if (debug) {
-							console.log(
-								'RETURN parsedValue',
-								deviceId,
-								objId,
-								devObj.value,
-								parsedValue,
-							)
-						}
-
-						let deviceMapInCallback = objDefMap.get(deviceId)
-						if (!deviceMapInCallback) {
-							deviceMapInCallback = new Map<string, any[]>()
-							objDefMap.set(deviceId, deviceMapInCallback)
-						}
-
-						let propArrayInCallback = deviceMapInCallback.get(objId)
-						if (!propArrayInCallback) {
-							propArrayInCallback = []
-							deviceMapInCallback.set(objId, propArrayInCallback)
-						}
-
-						propArrayInCallback.push(parsedValue)
-						if (!--cbCount) {
-							finalize()
-						}
-					},
 				)
-			})
+
+				if (debug) {
+					console.log(
+						'RETURN parsedValue',
+						deviceId,
+						objId,
+						devObj.value,
+						parsedValue,
+					)
+				}
+
+				let deviceMapInCallback = objDefMap.get(deviceId)
+				if (!deviceMapInCallback) {
+					deviceMapInCallback = new Map<string, any[]>()
+					objDefMap.set(deviceId, deviceMapInCallback)
+				}
+
+				let propArrayInCallback = deviceMapInCallback.get(objId)
+				if (!propArrayInCallback) {
+					propArrayInCallback = []
+					deviceMapInCallback.set(objId, propArrayInCallback)
+				}
+
+				propArrayInCallback.push(parsedValue)
+			}
+		}
+	}
+
+	const resultObj: Record<string, Record<string, any>> = {}
+
+	objDefMap.forEach((propMap, devIdKey) => {
+		const deviceObj: Record<string, any> = {}
+		resultObj[devIdKey] = deviceObj
+
+		propMap.forEach((valueArray, propIdKey) => {
+			deviceObj[propIdKey] =
+				valueArray.length === 1 ? valueArray[0] : valueArray
 		})
 	})
 
-	if (cbCount === 0) {
-		finalize()
+	if (
+		obj.values.length === 1 &&
+		obj.values[0]?.objectId?.instance !== undefined
+	) {
+		const firstDeviceId = String(obj.values[0].objectId.instance)
+		if (resultObj[firstDeviceId]) {
+			if (debug) {
+				console.log(
+					`END parseDeviceObject (single device): ${JSON.stringify(parent)} : ${JSON.stringify(resultObj[firstDeviceId])}`,
+				)
+			}
+			return resultObj[firstDeviceId]
+		}
 	}
+
+	if (debug) {
+		console.log(
+			`END parseDeviceObject (multiple devices): ${JSON.stringify(parent)} : ${JSON.stringify(resultObj)}`,
+		)
+	}
+	return resultObj
 }
 
 let objectsDone = 0
@@ -748,7 +718,7 @@ bacnetClient.on('listening', () => {
 const knownDevices: number[] = []
 
 // emitted when a new device is discovered in the network
-bacnetClient.on('iAm', (device) => {
+bacnetClient.on('iAm', async (device) => {
 	// Make sure device has the expected structure
 	if (!device.header || !device.payload) {
 		console.log('Received invalid device information')
@@ -779,35 +749,31 @@ bacnetClient.on('iAm', (device) => {
 		},
 	]
 
-	bacnetClient.readPropertyMultiple(address, requestArray, (err, value) => {
-		if (err) {
-			console.log(
-				deviceId,
-				'No ReadPropertyMultiple supported:',
-				err.message,
-			)
-			getAllPropertiesManually(
-				address,
-				{ type: 8, instance: deviceId },
-				(result) => {
-					parseDeviceObject(
-						address,
-						result,
-						{ type: 8, instance: deviceId },
-						false,
-						(res) => printResultObject(deviceId, res),
-					)
-				},
-			)
-		} else {
-			console.log(deviceId, 'ReadPropertyMultiple supported ...')
-			parseDeviceObject(
-				address,
-				value,
-				{ type: 8, instance: deviceId },
-				true,
-				(res) => printResultObject(deviceId, res),
-			)
-		}
-	})
+	try {
+		const value = await bacnetClient.readPropertyMultiple(
+			address,
+			requestArray,
+		)
+		console.log(deviceId, 'ReadPropertyMultiple supported ...')
+		const res = await parseDeviceObject(
+			address,
+			value,
+			{ type: 8, instance: deviceId },
+			true,
+		)
+		printResultObject(deviceId, res)
+	} catch (err: any) {
+		console.log(deviceId, 'No ReadPropertyMultiple supported:', err.message)
+		const result = await getAllPropertiesManually(address, {
+			type: 8,
+			instance: deviceId,
+		})
+		const res = await parseDeviceObject(
+			address,
+			result,
+			{ type: 8, instance: deviceId },
+			false,
+		)
+		printResultObject(deviceId, res)
+	}
 })

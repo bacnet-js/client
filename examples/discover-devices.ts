@@ -4,11 +4,7 @@
  * After 30s the discovery is stopped automatically
  */
 
-import Bacnet, {
-	PropertyIdentifier,
-	BACNetObjectID,
-	DecodeAcknowledgeSingleResult,
-} from '../src'
+import Bacnet, { PropertyIdentifier, BACNetObjectID } from '../src'
 
 // create instance of Bacnet
 const bacnetClient = new Bacnet({ apduTimeout: 10000, interface: '0.0.0.0' })
@@ -34,7 +30,7 @@ bacnetClient.on('listening', () => {
 const knownDevices: number[] = []
 
 // emitted when a new device is discovered in the network
-bacnetClient.on('iAm', (device: any) => {
+bacnetClient.on('iAm', async (device: any) => {
 	// Make sure device has the expected structure
 	if (!device.header || !device.payload) {
 		console.log('Received invalid device information')
@@ -51,46 +47,45 @@ bacnetClient.on('iAm', (device: any) => {
 
 	const deviceObjectId: BACNetObjectID = { type: 8, instance: deviceId }
 
-	bacnetClient.readProperty(
-		address,
-		deviceObjectId,
-		PropertyIdentifier.OBJECT_NAME,
-		(err, value: DecodeAcknowledgeSingleResult | undefined) => {
-			if (err) {
-				console.log(
-					`Found Device ${deviceId} on ${JSON.stringify(address)}`,
-				)
-				console.log(err)
-			} else {
-				bacnetClient.readProperty(
-					address,
-					deviceObjectId,
-					PropertyIdentifier.VENDOR_NAME,
-					(err2, valueVendor) => {
-						if (value && value.values && value.values[0]?.value) {
-							console.log(
-								`Found Device ${deviceId} on ${JSON.stringify(address)}: ${value.values[0].value}`,
-							)
-						} else {
-							console.log(
-								`Found Device ${deviceId} on ${JSON.stringify(address)}`,
-							)
-							console.log('value: ', JSON.stringify(value))
-						}
-						if (
-							!err2 &&
-							valueVendor?.values &&
-							valueVendor.values[0]?.value
-						) {
-							console.log(
-								`Vendor: ${valueVendor.values[0].value}`,
-							)
-						}
-						console.log()
-					},
-				)
+	try {
+		// Read device name using promise-based API
+		const value = await bacnetClient.readProperty(
+			address,
+			deviceObjectId,
+			PropertyIdentifier.OBJECT_NAME,
+		)
+
+		if (value && value.values && value.values[0]?.value) {
+			console.log(
+				`Found Device ${deviceId} on ${JSON.stringify(address)}: ${value.values[0].value}`,
+			)
+		} else {
+			console.log(
+				`Found Device ${deviceId} on ${JSON.stringify(address)}`,
+			)
+			console.log('value: ', JSON.stringify(value))
+		}
+
+		// Read vendor name using promise-based API
+		try {
+			const valueVendor = await bacnetClient.readProperty(
+				address,
+				deviceObjectId,
+				PropertyIdentifier.VENDOR_NAME,
+			)
+
+			if (valueVendor?.values && valueVendor.values[0]?.value) {
+				console.log(`Vendor: ${valueVendor.values[0].value}`)
 			}
-		},
-	)
+		} catch (vendorErr) {
+			// Vendor name might not be available, continue
+		}
+
+		console.log()
+	} catch (err) {
+		console.log(`Found Device ${deviceId} on ${JSON.stringify(address)}`)
+		console.log(err)
+	}
+
 	knownDevices.push(deviceId)
 })
