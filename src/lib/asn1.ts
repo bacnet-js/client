@@ -10,6 +10,7 @@ import {
 	BACNetDevObjRef,
 	BACNetObjectID,
 	BACNetPropertyID,
+	BACNetTimestamp,
 	Decode,
 	Tag,
 	ObjectId,
@@ -614,68 +615,71 @@ export const bacappEncodeApplicationData = (
 			encodeApplicationNull(buffer)
 			break
 		case ApplicationTag.BOOLEAN:
-			encodeApplicationBoolean(buffer, value.value)
+			encodeApplicationBoolean(buffer, value.value as boolean)
 			break
 		case ApplicationTag.UNSIGNED_INTEGER:
-			encodeApplicationUnsigned(buffer, value.value)
+			encodeApplicationUnsigned(buffer, value.value as number)
 			break
 		case ApplicationTag.SIGNED_INTEGER:
-			encodeApplicationSigned(buffer, value.value)
+			encodeApplicationSigned(buffer, value.value as number)
 			break
 		case ApplicationTag.REAL:
-			encodeApplicationReal(buffer, value.value)
+			encodeApplicationReal(buffer, value.value as number)
 			break
 		case ApplicationTag.DOUBLE:
-			encodeApplicationDouble(buffer, value.value)
+			encodeApplicationDouble(buffer, value.value as number)
 			break
 		case ApplicationTag.OCTET_STRING:
 			encodeApplicationOctetString(
 				buffer,
-				value.value,
+				value.value as number[],
 				0,
-				value.value.length,
+				(value.value as number[]).length,
 			)
 			break
 		case ApplicationTag.CHARACTER_STRING:
 			encodeApplicationCharacterString(
 				buffer,
-				value.value,
+				value.value as string,
 				value.encoding,
 			)
 			break
 		case ApplicationTag.BIT_STRING:
-			encodeApplicationBitstring(buffer, value.value)
+			encodeApplicationBitstring(buffer, value.value as BACNetBitString)
 			break
 		case ApplicationTag.ENUMERATED:
-			encodeApplicationEnumerated(buffer, value.value)
+			encodeApplicationEnumerated(buffer, value.value as number)
 			break
 		case ApplicationTag.DATE:
-			encodeApplicationDate(buffer, value.value)
+			encodeApplicationDate(buffer, value.value as Date)
 			break
 		case ApplicationTag.TIME:
-			encodeApplicationTime(buffer, value.value)
+			encodeApplicationTime(buffer, value.value as Date)
 			break
 		case ApplicationTag.TIMESTAMP:
-			bacappEncodeTimestamp(buffer, value.value)
+			bacappEncodeTimestamp(buffer, value.value as BACNetTimestamp)
 			break
 		case ApplicationTag.DATETIME:
-			bacappEncodeDatetime(buffer, value.value)
+			bacappEncodeDatetime(buffer, value.value as Date)
 			break
 		case ApplicationTag.OBJECTIDENTIFIER:
 			encodeApplicationObjectId(
 				buffer,
-				value.value.type,
-				value.value.instance,
+				(value.value as BACNetObjectID).type,
+				(value.value as BACNetObjectID).instance,
 			)
 			break
 		case ApplicationTag.COV_SUBSCRIPTION:
-			encodeCovSubscription(buffer, value.value)
+			encodeCovSubscription(buffer, value.value as BACNetCovSubscription)
 			break
 		case ApplicationTag.READ_ACCESS_RESULT:
-			encodeReadAccessResult(buffer, value.value)
+			encodeReadAccessResult(buffer, value.value as BACNetReadAccess)
 			break
 		case ApplicationTag.READ_ACCESS_SPECIFICATION:
-			encodeReadAccessSpecification(buffer, value.value)
+			encodeReadAccessSpecification(
+				buffer,
+				value.value as BACNetReadAccessSpecification,
+			)
 			break
 		case undefined:
 			throw new Error(
