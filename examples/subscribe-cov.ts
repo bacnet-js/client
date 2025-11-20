@@ -11,7 +11,12 @@ import Bacnet, { BACNetObjectID, ServiceOptions } from '../src/index'
 // https://sourceforge.net/projects/yetanotherbacnetexplorer/
 
 // create instance of Bacnet
-const bacnetClient = new Bacnet({ apduTimeout: 10000, interface: '0.0.0.0' })
+// Use port 47809 to avoid conflict with emulator on 47808
+const bacnetClient = new Bacnet({
+	apduTimeout: 10000,
+	interface: '0.0.0.0',
+	port: 47809,
+})
 
 // emitted for each new message
 bacnetClient.on('message', (msg: any, rinfo: any) => {
@@ -38,7 +43,7 @@ bacnetClient.on('covNotifyUnconfirmed', (data: any) => {
 })
 
 // emitted when a new device is discovered in the network
-bacnetClient.on('iAm', (device: any) => {
+bacnetClient.on('iAm', async (device: any) => {
 	console.log(`Received iAm: ${JSON.stringify(device, null, 4)}`)
 
 	// Make sure device has the expected structure
@@ -64,36 +69,40 @@ bacnetClient.on('iAm', (device: any) => {
 		maxApdu: 0,
 	}
 
-	// Subscribe changes for PRESENT_VALUE of ANALOG_INPUT,0 object
-	// lifetime 0 means "for ever"
-	bacnetClient.subscribeCov(
-		address,
-		analogInput,
-		85,
-		false,
-		false,
-		0,
-		options,
-		(err) => {
-			console.log(`subscribeCOV${err ? err : ''}`)
-		},
-	)
-
-	// after 20s re-subscribe but with 1s lifetime to stop it
-	// I had issues with "cancel" call with the simulated device
-	setTimeout(() => {
-		bacnetClient.subscribeCov(
+	try {
+		// Subscribe changes for PRESENT_VALUE of ANALOG_INPUT,0 object
+		// lifetime 0 means "for ever"
+		await bacnetClient.subscribeCov(
 			address,
 			analogInput,
 			85,
 			false,
 			false,
-			1,
+			0,
 			options,
-			(err) => {
-				console.log(`UnsubscribeCOV${err ? err : ''}`)
-			},
 		)
+		console.log('subscribeCOV successful')
+	} catch (err) {
+		console.log(`subscribeCOV failed: ${err}`)
+	}
+
+	// after 20s re-subscribe but with 1s lifetime to stop it
+	// I had issues with "cancel" call with the simulated device
+	setTimeout(async () => {
+		try {
+			await bacnetClient.subscribeCov(
+				address,
+				analogInput,
+				85,
+				false,
+				false,
+				1,
+				options,
+			)
+			console.log('UnsubscribeCOV successful')
+		} catch (err) {
+			console.log(`UnsubscribeCOV failed: ${err}`)
+		}
 	}, 20000)
 })
 
