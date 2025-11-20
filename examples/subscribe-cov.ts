@@ -11,7 +11,12 @@ import Bacnet, { BACNetObjectID, ServiceOptions } from '../src/index'
 // https://sourceforge.net/projects/yetanotherbacnetexplorer/
 
 // create instance of Bacnet
-const bacnetClient = new Bacnet({ apduTimeout: 10000, interface: '0.0.0.0' })
+// Use port 47809 to avoid conflict with emulator on 47808
+const bacnetClient = new Bacnet({
+	apduTimeout: 10000,
+	interface: '0.0.0.0',
+	port: 47809,
+})
 
 // emitted for each new message
 bacnetClient.on('message', (msg: any, rinfo: any) => {
