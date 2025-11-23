@@ -52,6 +52,7 @@ import {
 	ServiceOptions,
 	ReadPropertyOptions,
 	WritePropertyOptions,
+	WriteFileOptions,
 	ErrorCallback,
 	DataCallback,
 	DecodeAcknowledgeSingleResult,
@@ -1271,24 +1272,31 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 
 	/**
 	 * Writes a file to a remote device.
+	 * @param receiver - The BACnet device address
+	 * @param objectId - The file object identifier
+	 * @param position - Start position (byte offset for stream, record number for records)
+	 * @param fileBuffer - Array of byte arrays containing the data to write
+	 * @param options - Optional parameters including isStream (defaults to true for stream mode)
 	 */
 	async writeFile(
 		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		position: number,
 		fileBuffer: number[][],
-		options: ServiceOptions = {},
+		options: WriteFileOptions = {},
 	): Promise<DecodeAtomicWriteFileResult> {
 		const settings = {
 			maxSegments:
-				(options as ServiceOptions).maxSegments ||
+				(options as WriteFileOptions).maxSegments ||
 				MaxSegmentsAccepted.SEGMENTS_65,
 			maxApdu:
-				(options as ServiceOptions).maxApdu ||
+				(options as WriteFileOptions).maxApdu ||
 				MaxApduLengthAccepted.OCTETS_1476,
 			invokeId:
-				(options as ServiceOptions).invokeId || this._getInvokeId(),
+				(options as WriteFileOptions).invokeId || this._getInvokeId(),
 		}
+		// Default to stream mode (true) as it's the most common file access method
+		const isStream = options.isStream !== undefined ? options.isStream : true
 		const buffer = this._getApduBuffer(receiver)
 		baNpdu.encode(
 			buffer,
@@ -1306,7 +1314,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			0,
 		)
 		const blocks: number[][] = fileBuffer
-		AtomicWriteFile.encode(buffer, false, objectId, position, blocks)
+		AtomicWriteFile.encode(buffer, isStream, objectId, position, blocks)
 		this.sendBvlc(receiver, buffer)
 		const data = await this._requestManager.add(settings.invokeId)
 		const result = AtomicWriteFile.decodeAcknowledge(
