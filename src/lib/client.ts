@@ -1287,13 +1287,13 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	): Promise<DecodeAtomicWriteFileResult> {
 		const settings = {
 			maxSegments:
-				(options as WriteFileOptions).maxSegments ||
+				options.maxSegments ||
 				MaxSegmentsAccepted.SEGMENTS_65,
 			maxApdu:
-				(options as WriteFileOptions).maxApdu ||
+				options.maxApdu ||
 				MaxApduLengthAccepted.OCTETS_1476,
 			invokeId:
-				(options as WriteFileOptions).invokeId || this._getInvokeId(),
+				options.invokeId || this._getInvokeId(),
 		}
 		// Default to stream mode (true) as it's the most common file access method
 		const isStream = options.isStream !== undefined ? options.isStream : true
