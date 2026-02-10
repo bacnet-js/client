@@ -310,13 +310,21 @@ export default class ReadRange extends BacnetAckService {
 		const itemCount = decodedValue.value
 		if (!baAsn1.decodeIsOpeningTag(buffer, offset + len)) return undefined
 		len++
-		const rangeBuffer = buffer.slice(offset + len, apduLen - 3)
+		const decodedRange = baAsn1.decodeRange(
+			buffer,
+			offset + len,
+			offset + apduLen,
+		)
+		const rangeBuffer = decodedRange
+			? buffer.slice(offset + len, offset + len + decodedRange.len)
+			: buffer.slice(offset + len, apduLen - 3)
 		return {
 			objectId,
 			property,
 			resultFlag,
 			itemCount,
 			rangeBuffer,
+			...(decodedRange ? { values: decodedRange.value } : {}),
 			len,
 		}
 	}
