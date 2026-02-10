@@ -274,6 +274,23 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		}, /exactly 7 days/)
 	})
 
+	test('should reject weekly schedule payload with non-array day', () => {
+		const buffer = utils.getBuffer()
+		const invalidWeekly = [[], [], [], {}, [], [], []]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.WEEKLY_SCHEDULE,
+				0xffffffff,
+				0,
+				invalidWeekly as any,
+			)
+		}, /should be an array/)
+	})
+
 	test('should encode exception schedule payload', () => {
 		const buffer = utils.getBuffer()
 		const payload = [
@@ -333,6 +350,37 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 				.toString('hex')
 				.includes('2b'),
 		)
+	})
+
+	test('should reject exception schedule payload with invalid date range length', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{
+				date: {
+					type: ApplicationTag.DATERANGE,
+					value: [
+						{
+							type: ApplicationTag.DATE,
+							value: new Date(2024, 11, 4),
+						},
+					],
+				},
+				events: [],
+				priority: { type: ApplicationTag.UNSIGNED_INTEGER, value: 16 },
+			},
+		]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.EXCEPTION_SCHEDULE,
+				0xffffffff,
+				0,
+				payload as any,
+			)
+		}, /must have exactly 2 dates/)
 	})
 
 	test('should encode schedule effective period payload', () => {
@@ -419,5 +467,27 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 				invalidDateList as any,
 			)
 		}, /unsupported calendar date list entry format/)
+	})
+
+	test('should reject calendar date list payload with invalid raw date bytes', () => {
+		const buffer = utils.getBuffer()
+		const invalidDateList = [
+			{
+				type: ApplicationTag.DATE,
+				value: { year: 2025, month: 8, day: 22, wday: 5 },
+			},
+		]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.CALENDAR,
+				0,
+				PropertyIdentifier.DATE_LIST,
+				0xffffffff,
+				0,
+				invalidDateList as any,
+			)
+		}, /invalid raw date year/)
 	})
 })

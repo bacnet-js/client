@@ -19,6 +19,11 @@ client.on('error', (err) => {
 	client.close()
 })
 
+// EXCEPTION_SCHEDULE payload:
+// - Array of SpecialEvent entries
+// - Entry shape: { date, events, priority }
+// - date supports DATE | DATERANGE (exactly 2 dates) | WEEKNDAY
+// - events is TimeValue[] with shape: { time: { type: TIME, value: Date }, value: BACnetValue }
 const exceptionSchedule = [
 	{
 		date: {

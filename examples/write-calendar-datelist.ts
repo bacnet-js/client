@@ -19,6 +19,10 @@ client.on('error', (err) => {
 	client.close()
 })
 
+// DATE_LIST payload:
+// - Array of calendar entries
+// - Entry type must be one of DATE | DATERANGE | WEEKNDAY
+// - DATERANGE value must contain exactly 2 DATE entries
 const dateList = [
 	{ type: ApplicationTag.DATE, value: new Date(2025, 7, 22) },
 	{

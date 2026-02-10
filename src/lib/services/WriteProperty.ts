@@ -19,6 +19,17 @@ import {
 import { BacnetService } from './AbstractServices'
 
 export default class WriteProperty extends BacnetService {
+	private static validateRawDateByte(
+		name: string,
+		value: number,
+		min: number,
+		max: number,
+	) {
+		if (!Number.isInteger(value) || value < min || value > max) {
+			throw new Error(`invalid raw date ${name}: ${value}`)
+		}
+	}
+
 	private static writeDateBytes(buffer: EncodeBuffer, value: any) {
 		if (
 			value &&
@@ -28,6 +39,16 @@ export default class WriteProperty extends BacnetService {
 			'day' in value &&
 			'wday' in value
 		) {
+			WriteProperty.validateRawDateByte('year', value.year, 0, 255)
+			if (value.month !== 0xff) {
+				WriteProperty.validateRawDateByte('month', value.month, 1, 12)
+			}
+			if (value.day !== 0xff) {
+				WriteProperty.validateRawDateByte('day', value.day, 1, 31)
+			}
+			if (value.wday !== 0xff) {
+				WriteProperty.validateRawDateByte('wday', value.wday, 1, 7)
+			}
 			buffer.buffer[buffer.offset++] = value.year
 			buffer.buffer[buffer.offset++] = value.month
 			buffer.buffer[buffer.offset++] = value.day
@@ -118,20 +139,23 @@ export default class WriteProperty extends BacnetService {
 				'Could not encode: weekly schedule should have exactly 7 days',
 			)
 		}
-		for (const day of values) {
+		for (const [index, day] of values.entries()) {
+			if (!Array.isArray(day)) {
+				throw new Error(
+					`Could not encode: weekly schedule day ${index} should be an array`,
+				)
+			}
 			baAsn1.encodeOpeningTag(buffer, 0)
-			if (Array.isArray(day)) {
-				for (const slot of day) {
-					const timeValue = slot?.time?.value ?? slot?.time
-					baAsn1.bacappEncodeApplicationData(buffer, {
-						type: ApplicationTag.TIME,
-						value:
-							timeValue instanceof Date
-								? timeValue
-								: new Date(timeValue),
-					})
-					baAsn1.bacappEncodeApplicationData(buffer, slot.value)
-				}
+			for (const slot of day) {
+				const timeValue = slot?.time?.value ?? slot?.time
+				baAsn1.bacappEncodeApplicationData(buffer, {
+					type: ApplicationTag.TIME,
+					value:
+						timeValue instanceof Date
+							? timeValue
+							: new Date(timeValue),
+				})
+				baAsn1.bacappEncodeApplicationData(buffer, slot.value)
 			}
 			baAsn1.encodeClosingTag(buffer, 0)
 		}
@@ -147,6 +171,11 @@ export default class WriteProperty extends BacnetService {
 			return
 		}
 		if (date?.type === ApplicationTag.DATERANGE) {
+			if (!Array.isArray(date.value) || date.value.length !== 2) {
+				throw new Error(
+					'Could not encode: exception schedule date range must have exactly 2 dates',
+				)
+			}
 			baAsn1.encodeOpeningTag(buffer, 1)
 			for (const row of date.value || []) {
 				WriteProperty.encodeDate(

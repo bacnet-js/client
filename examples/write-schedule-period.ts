@@ -19,6 +19,8 @@ client.on('error', (err) => {
 	client.close()
 })
 
+// EFFECTIVE_PERIOD payload:
+// - Array with exactly 2 DATE values: [startDate, endDate]
 const effectivePeriod = [
 	{ type: ApplicationTag.DATE, value: new Date(2025, 7, 22) },
 	{ type: ApplicationTag.DATE, value: new Date(2026, 3, 17) },

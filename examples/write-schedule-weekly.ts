@@ -19,6 +19,10 @@ client.on('error', (err) => {
 	client.close()
 })
 
+// WEEKLY_SCHEDULE payload:
+// - Array with exactly 7 items (Monday..Sunday)
+// - Each day item must be an array of TimeValue entries
+// - TimeValue entry shape: { time: { type: TIME, value: Date }, value: BACnetValue }
 const weekly: any[] = [
 	[
 		{
