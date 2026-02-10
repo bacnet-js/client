@@ -4,6 +4,9 @@ import {
 	ASN1_NO_PRIORITY,
 	ASN1_MAX_PRIORITY,
 	ASN1_MIN_PRIORITY,
+	ApplicationTag,
+	ObjectType,
+	PropertyIdentifier,
 } from '../enum'
 import {
 	EncodeBuffer,
@@ -16,6 +19,224 @@ import {
 import { BacnetService } from './AbstractServices'
 
 export default class WriteProperty extends BacnetService {
+	private static writeDateBytes(buffer: EncodeBuffer, value: any) {
+		if (
+			value &&
+			typeof value === 'object' &&
+			'year' in value &&
+			'month' in value &&
+			'day' in value &&
+			'wday' in value
+		) {
+			buffer.buffer[buffer.offset++] = value.year
+			buffer.buffer[buffer.offset++] = value.month
+			buffer.buffer[buffer.offset++] = value.day
+			buffer.buffer[buffer.offset++] = value.wday
+			return
+		}
+
+		const date = value instanceof Date ? value : new Date(value)
+		if (date.getTime() === baAsn1.ZERO_DATE.getTime()) {
+			buffer.buffer[buffer.offset++] = 0xff
+			buffer.buffer[buffer.offset++] = 0xff
+			buffer.buffer[buffer.offset++] = 0xff
+			buffer.buffer[buffer.offset++] = 0xff
+			return
+		}
+
+		if (date.getFullYear() >= baAsn1.START_YEAR) {
+			buffer.buffer[buffer.offset++] =
+				date.getFullYear() - baAsn1.START_YEAR
+		} else if (date.getFullYear() < baAsn1.MAX_YEARS) {
+			buffer.buffer[buffer.offset++] = date.getFullYear()
+		} else {
+			throw new Error(`invalid year: ${date.getFullYear()}`)
+		}
+		buffer.buffer[buffer.offset++] = date.getMonth() + 1
+		buffer.buffer[buffer.offset++] = date.getDate()
+		buffer.buffer[buffer.offset++] = date.getDay() === 0 ? 7 : date.getDay()
+	}
+
+	private static extractDateInput(entry: any) {
+		if (entry && typeof entry === 'object' && 'raw' in entry && entry.raw) {
+			return entry.raw
+		}
+		if (entry && typeof entry === 'object' && 'value' in entry) {
+			return entry.value
+		}
+		return entry
+	}
+
+	private static encodeDate(
+		buffer: EncodeBuffer,
+		value: any,
+		contextTag?: number,
+	) {
+		if (contextTag !== undefined) {
+			baAsn1.encodeTag(buffer, contextTag, true, 4)
+		} else {
+			baAsn1.encodeTag(buffer, ApplicationTag.DATE, false, 4)
+		}
+		WriteProperty.writeDateBytes(buffer, value)
+	}
+
+	private static encodeWeekNDayContext(buffer: EncodeBuffer, value: any) {
+		const weekNDay = value?.value ?? value
+		baAsn1.encodeTag(buffer, 2, true, 3)
+		buffer.buffer[buffer.offset++] = weekNDay.month
+		buffer.buffer[buffer.offset++] = weekNDay.week
+		buffer.buffer[buffer.offset++] = weekNDay.wday
+	}
+
+	private static encodeWriteHeader(
+		buffer: EncodeBuffer,
+		objectType: number,
+		objectInstance: number,
+		propertyId: number,
+		arrayIndex: number,
+	) {
+		baAsn1.encodeContextObjectId(buffer, 0, objectType, objectInstance)
+		baAsn1.encodeContextEnumerated(buffer, 1, propertyId)
+		if (arrayIndex !== ASN1_ARRAY_ALL) {
+			baAsn1.encodeContextUnsigned(buffer, 2, arrayIndex)
+		}
+		baAsn1.encodeOpeningTag(buffer, 3)
+	}
+
+	private static encodeWritePriority(buffer: EncodeBuffer, priority: number) {
+		if (priority !== ASN1_NO_PRIORITY) {
+			baAsn1.encodeContextUnsigned(buffer, 4, priority)
+		}
+	}
+
+	private static encodeWeeklySchedulePayload(
+		buffer: EncodeBuffer,
+		values: any[],
+	) {
+		if (values.length < 7) {
+			throw new Error(
+				'Could not encode: weekly schedule should have length 7',
+			)
+		}
+		for (const day of values) {
+			baAsn1.encodeOpeningTag(buffer, 0)
+			if (Array.isArray(day)) {
+				for (const slot of day) {
+					const timeValue = slot?.time?.value ?? slot?.time
+					baAsn1.bacappEncodeApplicationData(buffer, {
+						type: ApplicationTag.TIME,
+						value:
+							timeValue instanceof Date
+								? timeValue
+								: new Date(timeValue),
+					})
+					baAsn1.bacappEncodeApplicationData(buffer, slot.value)
+				}
+			}
+			baAsn1.encodeClosingTag(buffer, 0)
+		}
+	}
+
+	private static encodeExceptionDate(buffer: EncodeBuffer, date: any) {
+		if (date?.type === ApplicationTag.DATE) {
+			WriteProperty.encodeDate(
+				buffer,
+				WriteProperty.extractDateInput(date),
+				0,
+			)
+			return
+		}
+		if (date?.type === ApplicationTag.DATERANGE) {
+			baAsn1.encodeOpeningTag(buffer, 1)
+			for (const row of date.value || []) {
+				WriteProperty.encodeDate(
+					buffer,
+					WriteProperty.extractDateInput(row),
+				)
+			}
+			baAsn1.encodeClosingTag(buffer, 1)
+			return
+		}
+		if (date?.type === ApplicationTag.WEEKNDAY) {
+			WriteProperty.encodeWeekNDayContext(buffer, date)
+			return
+		}
+		throw new Error(
+			'Could not encode: unsupported exception schedule date format',
+		)
+	}
+
+	private static encodeExceptionSchedulePayload(
+		buffer: EncodeBuffer,
+		values: any[],
+	) {
+		for (const entry of values) {
+			baAsn1.encodeOpeningTag(buffer, 0)
+			WriteProperty.encodeExceptionDate(buffer, entry.date)
+			baAsn1.encodeClosingTag(buffer, 0)
+
+			baAsn1.encodeOpeningTag(buffer, 2)
+			for (const event of entry.events || []) {
+				const timeValue = event?.time?.value ?? event?.time
+				baAsn1.bacappEncodeApplicationData(buffer, {
+					type: ApplicationTag.TIME,
+					value:
+						timeValue instanceof Date
+							? timeValue
+							: new Date(timeValue),
+				})
+				baAsn1.bacappEncodeApplicationData(buffer, event.value)
+			}
+			baAsn1.encodeClosingTag(buffer, 2)
+
+			const priorityValue = entry?.priority?.value ?? entry?.priority
+			baAsn1.encodeContextUnsigned(buffer, 3, priorityValue)
+		}
+	}
+
+	private static encodeEffectivePeriodPayload(
+		buffer: EncodeBuffer,
+		values: any[],
+	) {
+		if (values.length !== 2) {
+			throw new Error(
+				'Could not encode: effective period should have a length of 2',
+			)
+		}
+		for (const entry of values) {
+			WriteProperty.encodeDate(
+				buffer,
+				WriteProperty.extractDateInput(entry),
+			)
+		}
+	}
+
+	private static encodeCalendarDateListPayload(
+		buffer: EncodeBuffer,
+		values: any[],
+	) {
+		for (const entry of values) {
+			if (entry?.type === ApplicationTag.DATE) {
+				WriteProperty.encodeDate(
+					buffer,
+					WriteProperty.extractDateInput(entry),
+					0,
+				)
+			} else if (entry?.type === ApplicationTag.DATERANGE) {
+				baAsn1.encodeOpeningTag(buffer, 1)
+				for (const row of entry.value || []) {
+					WriteProperty.encodeDate(
+						buffer,
+						WriteProperty.extractDateInput(row),
+					)
+				}
+				baAsn1.encodeClosingTag(buffer, 1)
+			} else if (entry?.type === ApplicationTag.WEEKNDAY) {
+				WriteProperty.encodeWeekNDayContext(buffer, entry)
+			}
+		}
+	}
+
 	public static encode(
 		buffer: EncodeBuffer,
 		objectType: number,
@@ -25,6 +246,74 @@ export default class WriteProperty extends BacnetService {
 		priority: number,
 		values: BACNetAppData[],
 	) {
+		if (
+			objectType === ObjectType.SCHEDULE &&
+			propertyId === PropertyIdentifier.WEEKLY_SCHEDULE
+		) {
+			WriteProperty.encodeWriteHeader(
+				buffer,
+				objectType,
+				objectInstance,
+				propertyId,
+				arrayIndex,
+			)
+			WriteProperty.encodeWeeklySchedulePayload(buffer, values as any[])
+			baAsn1.encodeClosingTag(buffer, 3)
+			WriteProperty.encodeWritePriority(buffer, priority)
+			return
+		}
+		if (
+			objectType === ObjectType.SCHEDULE &&
+			propertyId === PropertyIdentifier.EXCEPTION_SCHEDULE
+		) {
+			WriteProperty.encodeWriteHeader(
+				buffer,
+				objectType,
+				objectInstance,
+				propertyId,
+				arrayIndex,
+			)
+			WriteProperty.encodeExceptionSchedulePayload(
+				buffer,
+				values as any[],
+			)
+			baAsn1.encodeClosingTag(buffer, 3)
+			WriteProperty.encodeWritePriority(buffer, priority)
+			return
+		}
+		if (
+			objectType === ObjectType.SCHEDULE &&
+			propertyId === PropertyIdentifier.EFFECTIVE_PERIOD
+		) {
+			WriteProperty.encodeWriteHeader(
+				buffer,
+				objectType,
+				objectInstance,
+				propertyId,
+				arrayIndex,
+			)
+			WriteProperty.encodeEffectivePeriodPayload(buffer, values as any[])
+			baAsn1.encodeClosingTag(buffer, 3)
+			WriteProperty.encodeWritePriority(buffer, priority)
+			return
+		}
+		if (
+			objectType === ObjectType.CALENDAR &&
+			propertyId === PropertyIdentifier.DATE_LIST
+		) {
+			WriteProperty.encodeWriteHeader(
+				buffer,
+				objectType,
+				objectInstance,
+				propertyId,
+				arrayIndex,
+			)
+			WriteProperty.encodeCalendarDateListPayload(buffer, values as any[])
+			baAsn1.encodeClosingTag(buffer, 3)
+			WriteProperty.encodeWritePriority(buffer, priority)
+			return
+		}
+
 		baAsn1.encodeContextObjectId(buffer, 0, objectType, objectInstance)
 		baAsn1.encodeContextEnumerated(buffer, 1, propertyId)
 		if (arrayIndex !== ASN1_ARRAY_ALL) {
@@ -118,7 +407,6 @@ export default class WriteProperty extends BacnetService {
 			values.push(decodedValue as ApplicationData)
 		}
 		value.value = values
-
 		if (!baAsn1.decodeIsClosingTagNumber(buffer, offset + len, 3))
 			return undefined
 		len++
