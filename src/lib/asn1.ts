@@ -2149,6 +2149,7 @@ export const decodeExceptionSchedule = (
 
 		tag = decodeTagNumberAndValue(buffer, offset + len)
 		if (decodeIsClosingTagNumber(buffer, offset + len, 3)) {
+			len += tag.len
 			return { len, value: result }
 		}
 		len += tag.len

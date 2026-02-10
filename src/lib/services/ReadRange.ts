@@ -317,7 +317,7 @@ export default class ReadRange extends BacnetAckService {
 		)
 		const rangeBuffer = decodedRange
 			? buffer.slice(offset + len, offset + len + decodedRange.len)
-			: buffer.slice(offset + len, apduLen - 3)
+			: buffer.slice(offset + len, offset + apduLen - 3)
 		return {
 			objectId,
 			property,
