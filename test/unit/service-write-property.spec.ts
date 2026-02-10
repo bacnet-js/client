@@ -4,6 +4,11 @@ import assert from 'node:assert'
 import * as utils from './utils'
 import { WriteProperty } from '../../src/lib/services'
 import { ZERO_DATE } from '../../src/lib/asn1'
+import {
+	ApplicationTag,
+	ObjectType,
+	PropertyIdentifier,
+} from '../../src/lib/enum'
 
 test.describe('bacnet - Services layer WriteProperty unit', () => {
 	test('should successfully encode and decode', (t) => {
@@ -196,5 +201,186 @@ test.describe('bacnet - Services layer WriteProperty unit', () => {
 				],
 			},
 		})
+	})
+})
+
+test.describe('WriteProperty schedule/calendar compatibility', () => {
+	test('should encode weekly schedule payload', () => {
+		const buffer = utils.getBuffer()
+		const daily = [
+			[
+				{
+					time: {
+						type: ApplicationTag.TIME,
+						value: new Date(2024, 0, 1, 4, 30),
+					},
+					value: { type: ApplicationTag.UNSIGNED_INTEGER, value: 2 },
+				},
+			],
+			[],
+			[],
+			[],
+			[],
+			[],
+			[
+				{
+					time: {
+						type: ApplicationTag.TIME,
+						value: new Date(2024, 0, 1, 13, 15),
+					},
+					value: { type: ApplicationTag.UNSIGNED_INTEGER, value: 1 },
+				},
+			],
+		]
+
+		WriteProperty.encode(
+			buffer,
+			ObjectType.SCHEDULE,
+			0,
+			PropertyIdentifier.WEEKLY_SCHEDULE,
+			0xffffffff,
+			0,
+			daily as any,
+		)
+
+		const result = WriteProperty.decode(buffer.buffer, 0, buffer.offset)
+		assert.ok(result)
+		assert.equal(
+			result.value.property.id,
+			PropertyIdentifier.WEEKLY_SCHEDULE,
+		)
+		assert.ok(
+			buffer.buffer
+				.slice(0, buffer.offset)
+				.toString('hex')
+				.includes('0e'),
+		)
+	})
+
+	test('should encode exception schedule payload', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{
+				date: {
+					type: ApplicationTag.DATE,
+					value: new Date(2024, 11, 4),
+				},
+				events: [
+					{
+						time: {
+							type: ApplicationTag.TIME,
+							value: new Date(2024, 11, 4, 0, 0),
+						},
+						value: { type: ApplicationTag.REAL, value: 3 },
+					},
+				],
+				priority: { type: ApplicationTag.UNSIGNED_INTEGER, value: 16 },
+			},
+			{
+				date: {
+					type: ApplicationTag.WEEKNDAY,
+					value: { month: 0xff, week: 2, wday: 1 },
+				},
+				events: [
+					{
+						time: {
+							type: ApplicationTag.TIME,
+							value: new Date(2024, 11, 4, 0, 20),
+						},
+						value: { type: ApplicationTag.ENUMERATED, value: 4 },
+					},
+				],
+				priority: { type: ApplicationTag.UNSIGNED_INTEGER, value: 8 },
+			},
+		]
+
+		WriteProperty.encode(
+			buffer,
+			ObjectType.SCHEDULE,
+			0,
+			PropertyIdentifier.EXCEPTION_SCHEDULE,
+			0xffffffff,
+			0,
+			payload as any,
+		)
+
+		const result = WriteProperty.decode(buffer.buffer, 0, buffer.offset)
+		assert.ok(result)
+		assert.equal(
+			result.value.property.id,
+			PropertyIdentifier.EXCEPTION_SCHEDULE,
+		)
+		assert.ok(
+			buffer.buffer
+				.slice(0, buffer.offset)
+				.toString('hex')
+				.includes('2b'),
+		)
+	})
+
+	test('should encode schedule effective period payload', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{ type: ApplicationTag.DATE, value: new Date(2024, 0, 1) },
+			{ type: ApplicationTag.DATE, value: ZERO_DATE },
+		]
+
+		WriteProperty.encode(
+			buffer,
+			ObjectType.SCHEDULE,
+			0,
+			PropertyIdentifier.EFFECTIVE_PERIOD,
+			0xffffffff,
+			0,
+			payload as any,
+		)
+
+		const hex = buffer.buffer.slice(0, buffer.offset).toString('hex')
+		assert.ok(hex.includes('a4'))
+		assert.ok(hex.includes('ffffffff'))
+	})
+
+	test('should encode calendar date list payload', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{ type: ApplicationTag.DATE, value: new Date(2025, 7, 22) },
+			{
+				type: ApplicationTag.DATERANGE,
+				value: [
+					{ type: ApplicationTag.DATE, value: new Date(2026, 1, 19) },
+					{ type: ApplicationTag.DATE, value: new Date(2026, 3, 17) },
+				],
+			},
+			{
+				type: ApplicationTag.WEEKNDAY,
+				value: { month: 2, week: 2, wday: 2 },
+			},
+		]
+
+		WriteProperty.encode(
+			buffer,
+			ObjectType.CALENDAR,
+			0,
+			PropertyIdentifier.DATE_LIST,
+			0xffffffff,
+			0,
+			payload as any,
+		)
+
+		const result = WriteProperty.decode(buffer.buffer, 0, buffer.offset)
+		assert.ok(result)
+		assert.equal(result.value.property.id, PropertyIdentifier.DATE_LIST)
+		assert.ok(
+			buffer.buffer
+				.slice(0, buffer.offset)
+				.toString('hex')
+				.includes('1e'),
+		)
+		assert.ok(
+			buffer.buffer
+				.slice(0, buffer.offset)
+				.toString('hex')
+				.includes('2b'),
+		)
 	})
 })
