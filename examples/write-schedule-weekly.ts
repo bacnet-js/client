@@ -4,11 +4,11 @@ import * as process from 'process'
 const target = process.argv[2]
 const instance = Number.parseInt(process.argv[3] || '0', 10)
 const targetPort = Number.parseInt(process.argv[4] || '47808', 10)
-const localPort = Number.parseInt(process.argv[5] || '47809', 10)
+const localPort = Number.parseInt(process.argv[5] || '47808', 10)
 
 if (!target) {
 	console.error(
-		'Usage: ts-node write-schedule-weekly.ts <ip> [instance=0] [targetPort=47808] [localPort=47809]',
+		'Usage: ts-node write-schedule-weekly.ts <ip> [instance=0] [targetPort=47808] [localPort=47808]',
 	)
 	process.exit(1)
 }
