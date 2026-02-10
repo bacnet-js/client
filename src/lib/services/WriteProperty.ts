@@ -113,9 +113,9 @@ export default class WriteProperty extends BacnetService {
 		buffer: EncodeBuffer,
 		values: any[],
 	) {
-		if (values.length < 7) {
+		if (values.length !== 7) {
 			throw new Error(
-				'Could not encode: weekly schedule should have length 7',
+				'Could not encode: weekly schedule should have exactly 7 days',
 			)
 		}
 		for (const day of values) {
@@ -233,6 +233,10 @@ export default class WriteProperty extends BacnetService {
 				baAsn1.encodeClosingTag(buffer, 1)
 			} else if (entry?.type === ApplicationTag.WEEKNDAY) {
 				WriteProperty.encodeWeekNDayContext(buffer, entry)
+			} else {
+				throw new Error(
+					'Could not encode: unsupported calendar date list entry format',
+				)
 			}
 		}
 	}

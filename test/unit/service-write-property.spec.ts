@@ -257,6 +257,23 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		)
 	})
 
+	test('should reject weekly schedule payload with more than seven days', () => {
+		const buffer = utils.getBuffer()
+		const invalidWeekly = [[], [], [], [], [], [], [], []]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.WEEKLY_SCHEDULE,
+				0xffffffff,
+				0,
+				invalidWeekly as any,
+			)
+		}, /exactly 7 days/)
+	})
+
 	test('should encode exception schedule payload', () => {
 		const buffer = utils.getBuffer()
 		const payload = [
@@ -382,5 +399,25 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 				.toString('hex')
 				.includes('2b'),
 		)
+	})
+
+	test('should reject calendar date list payload with unsupported entry', () => {
+		const buffer = utils.getBuffer()
+		const invalidDateList = [
+			{ type: ApplicationTag.DATE, value: new Date(2025, 7, 22) },
+			{ type: 255, value: 1 },
+		]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.CALENDAR,
+				0,
+				PropertyIdentifier.DATE_LIST,
+				0xffffffff,
+				0,
+				invalidDateList as any,
+			)
+		}, /unsupported calendar date list entry format/)
 	})
 })
