@@ -181,7 +181,11 @@ export default class ReadProperty extends BacnetService {
 			objectId.type === ObjectType.SCHEDULE &&
 			property.id === PropertyIdentifier.WEEKLY_SCHEDULE
 		) {
-			const result = baAsn1.decodeWeeklySchedule(buffer, offset + len, apduLen)
+			const result = baAsn1.decodeWeeklySchedule(
+				buffer,
+				offset + len,
+				apduLen,
+			)
 			if (!result) return undefined
 			values.push(...result.value)
 			len += result.len
@@ -189,7 +193,11 @@ export default class ReadProperty extends BacnetService {
 			objectId.type === ObjectType.SCHEDULE &&
 			property.id === PropertyIdentifier.EXCEPTION_SCHEDULE
 		) {
-			const result = baAsn1.decodeExceptionSchedule(buffer, offset + len, apduLen)
+			const result = baAsn1.decodeExceptionSchedule(
+				buffer,
+				offset + len,
+				apduLen,
+			)
 			if (!result) return undefined
 			values.push(...result.value)
 			len += result.len
@@ -231,7 +239,8 @@ export default class ReadProperty extends BacnetService {
 				delete result.len
 				values.push(result)
 			}
-			if (!baAsn1.decodeIsClosingTagNumber(buffer, offset + len, 3)) return
+			if (!baAsn1.decodeIsClosingTagNumber(buffer, offset + len, 3))
+				return
 			len++
 		}
 		return {

@@ -169,7 +169,9 @@ test.describe('ReadPropertyAcknowledge schedule/calendar compatibility', () => {
 		assert.equal(values[0].date.type, ApplicationTag.DATE)
 		assert.ok(values[0].date.value instanceof Date)
 		assert.ok(
-			values.some((entry) => entry?.date?.type === ApplicationTag.WEEKNDAY),
+			values.some(
+				(entry) => entry?.date?.type === ApplicationTag.WEEKNDAY,
+			),
 		)
 		const weekdayEntry = values.find(
 			(entry) => entry?.date?.type === ApplicationTag.WEEKNDAY,
@@ -247,8 +249,12 @@ test.describe('ReadPropertyAcknowledge schedule/calendar compatibility', () => {
 		assert.ok(result)
 		const values = result.values as any[]
 		assert.ok(values.length >= 2)
-		assert.ok(values.some((entry) => entry?.type === ApplicationTag.WEEKNDAY))
-		assert.ok(values.some((entry) => entry?.type === ApplicationTag.DATERANGE))
+		assert.ok(
+			values.some((entry) => entry?.type === ApplicationTag.WEEKNDAY),
+		)
+		assert.ok(
+			values.some((entry) => entry?.type === ApplicationTag.DATERANGE),
+		)
 	})
 })
 

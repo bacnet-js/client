@@ -1972,7 +1972,10 @@ export const decodeWeeklySchedule = (
 		5: [],
 		6: [],
 	}
-	while (len < apduLen && !decodeIsClosingTagNumber(buffer, offset + len, 3)) {
+	while (
+		len < apduLen &&
+		!decodeIsClosingTagNumber(buffer, offset + len, 3)
+	) {
 		if (decodeIsOpeningTagNumber(buffer, offset + len, 0)) {
 			len += decodeTagNumberAndValue(buffer, offset + len).len
 		}
@@ -1981,7 +1984,10 @@ export const decodeWeeklySchedule = (
 			day += 1
 			continue
 		}
-		const decoded: { time: ApplicationData | null; value: ApplicationData | null } = {
+		const decoded: {
+			time: ApplicationData | null
+			value: ApplicationData | null
+		} = {
 			time: null,
 			value: null,
 		}
@@ -2034,7 +2040,10 @@ export const decodeExceptionSchedule = (
 	if (!decodeIsOpeningTagNumber(buffer, offset, 0)) return undefined
 	len++
 	const result: any[] = []
-	while (len < apduLen && !decodeIsClosingTagNumber(buffer, offset + len, 3)) {
+	while (
+		len < apduLen &&
+		!decodeIsClosingTagNumber(buffer, offset + len, 3)
+	) {
 		if (decodeIsOpeningTagNumber(buffer, offset + len, 0)) {
 			len += decodeTagNumberAndValue(buffer, offset + len).len
 		}
@@ -2043,8 +2052,14 @@ export const decodeExceptionSchedule = (
 			continue
 		}
 		const decoded: {
-			date: ApplicationData | { len: number; type: number; value: ApplicationData[] } | null
-			events: { time: ApplicationData | null; value: ApplicationData | null }[]
+			date:
+				| ApplicationData
+				| { len: number; type: number; value: ApplicationData[] }
+				| null
+			events: {
+				time: ApplicationData | null
+				value: ApplicationData | null
+			}[]
 			priority: ApplicationData | null
 		} = {
 			date: null,
@@ -2053,7 +2068,10 @@ export const decodeExceptionSchedule = (
 		}
 		let tag = decodeTagNumberAndValue(buffer, offset + len)
 		len += tag.len
-		if (tag.tagNumber === 1 || decodeIsOpeningTagNumber(buffer, offset + len, 1)) {
+		if (
+			tag.tagNumber === 1 ||
+			decodeIsOpeningTagNumber(buffer, offset + len, 1)
+		) {
 			if (decodeIsOpeningTagNumber(buffer, offset + len, 1)) {
 				len += decodeTagNumberAndValue(buffer, offset + len).len
 			}
@@ -2109,8 +2127,14 @@ export const decodeExceptionSchedule = (
 		) {
 			len += decodeTagNumberAndValue(buffer, offset + len).len
 			len += decodeTagNumberAndValue(buffer, offset + len).len
-			while (len < apduLen && !decodeIsClosingTagNumber(buffer, offset + len, 2)) {
-				const event: { time: ApplicationData | null; value: ApplicationData | null } = {
+			while (
+				len < apduLen &&
+				!decodeIsClosingTagNumber(buffer, offset + len, 2)
+			) {
+				const event: {
+					time: ApplicationData | null
+					value: ApplicationData | null
+				} = {
 					time: null,
 					value: null,
 				}
@@ -2178,7 +2202,10 @@ export const decodeScheduleEffectivePeriod = (
 	if (!decodeIsOpeningTagNumber(buffer, offset - 1, 3)) return undefined
 	let len = 0
 	const result: ApplicationData[] = []
-	while (len < apduLen && !decodeIsClosingTagNumber(buffer, offset + len, 3)) {
+	while (
+		len < apduLen &&
+		!decodeIsClosingTagNumber(buffer, offset + len, 3)
+	) {
 		const tag = decodeTagNumberAndValue(buffer, offset + len)
 		len += tag.len
 		const value = bacappDecodeData(
@@ -2205,10 +2232,16 @@ export const decodeCalendarDatelist = (
 	if (!decodeIsOpeningTagNumber(buffer, offset - 1, 3)) return undefined
 	let len = 0
 	const result: any[] = []
-	while (len < apduLen && !decodeIsClosingTagNumber(buffer, offset + len, 3)) {
+	while (
+		len < apduLen &&
+		!decodeIsClosingTagNumber(buffer, offset + len, 3)
+	) {
 		let tag = decodeTagNumberAndValue(buffer, offset + len)
 		len += tag.len
-		if (tag.tagNumber === 1 || decodeIsOpeningTagNumber(buffer, offset + len, 1)) {
+		if (
+			tag.tagNumber === 1 ||
+			decodeIsOpeningTagNumber(buffer, offset + len, 1)
+		) {
 			if (decodeIsOpeningTagNumber(buffer, offset + len, 1)) {
 				len += decodeTagNumberAndValue(buffer, offset + len).len
 			}

@@ -182,12 +182,19 @@ test.describe('ReadRangeAcknowledge', () => {
 			0,
 		)
 
-		const result = ReadRange.decodeAcknowledge(buffer.buffer, 0, buffer.offset)
+		const result = ReadRange.decodeAcknowledge(
+			buffer.buffer,
+			0,
+			buffer.offset,
+		)
 		assert.ok(result)
 		assert.ok(result.values)
 		assert.equal(result.values?.length, 1)
 		assert.equal(result.values?.[0].value, 42.5)
-		assert.equal(result.values?.[0].timestamp, new Date(2024, 1, 3, 12, 15, 30, 0).getTime())
+		assert.equal(
+			result.values?.[0].timestamp,
+			new Date(2024, 1, 3, 12, 15, 30, 0).getTime(),
+		)
 	})
 
 	test('should slice fallback rangeBuffer correctly with non-zero offset', () => {
@@ -208,7 +215,11 @@ test.describe('ReadRangeAcknowledge', () => {
 			Buffer.from([0xaa, 0xbb]),
 			ackBuffer.buffer.slice(0, ackBuffer.offset),
 		])
-		const result = ReadRange.decodeAcknowledge(combined, 2, ackBuffer.offset)
+		const result = ReadRange.decodeAcknowledge(
+			combined,
+			2,
+			ackBuffer.offset,
+		)
 		assert.ok(result)
 		assert.deepStrictEqual(result.rangeBuffer, Buffer.from([1]))
 		assert.equal(result.values, undefined)
