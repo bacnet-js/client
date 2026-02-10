@@ -191,8 +191,9 @@ test.describe('ReadRangeAcknowledge', () => {
 		assert.ok(result.values)
 		assert.equal(result.values?.length, 1)
 		assert.equal(result.values?.[0].value, 42.5)
+		assert.ok(result.values?.[0].timestamp instanceof Date)
 		assert.equal(
-			result.values?.[0].timestamp,
+			result.values?.[0].timestamp.getTime(),
 			new Date(2024, 1, 3, 12, 15, 30, 0).getTime(),
 		)
 	})

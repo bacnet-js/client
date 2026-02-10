@@ -2400,16 +2400,17 @@ export const decodeRange = (
 		const d = date.value as Date
 		const t = time.value as Date
 		const statusBits = status.value as { value: number[] }
+		const timestamp = new Date(
+			d.getFullYear(),
+			d.getMonth(),
+			d.getDate(),
+			t.getHours(),
+			t.getMinutes(),
+			t.getSeconds(),
+			t.getMilliseconds(),
+		)
 		result.push({
-			timestamp: new Date(
-				d.getFullYear(),
-				d.getMonth(),
-				d.getDate(),
-				t.getHours(),
-				t.getMinutes(),
-				t.getSeconds(),
-				t.getMilliseconds(),
-			).getTime(),
+			timestamp,
 			value: value.value,
 			status: {
 				out_of_service: ((statusBits.value[0] >> 0) & 1) !== 0,
