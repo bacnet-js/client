@@ -277,6 +277,11 @@ export default class WriteProperty extends BacnetService {
 					0,
 				)
 			} else if (entry?.type === ApplicationTag.DATERANGE) {
+				if (!Array.isArray(entry.value) || entry.value.length !== 2) {
+					throw new Error(
+						'Could not encode: calendar date list date range must have exactly 2 dates',
+					)
+				}
 				baAsn1.encodeOpeningTag(buffer, 1)
 				for (const row of entry.value || []) {
 					WriteProperty.encodeDate(
