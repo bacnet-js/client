@@ -654,10 +654,11 @@ export interface ReadRangePayload extends BasicServicePayload {
 
 export interface ReadRangeAcknowledge {
 	objectId: BACNetObjectID
-	property: PropertyIdentifier
+	property: BACNetPropertyID
 	resultFlag: BACNetBitString
 	itemCount: number
 	rangeBuffer: Buffer
+	values?: any[]
 	len: number
 }
 

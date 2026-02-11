@@ -1,5 +1,12 @@
 import * as baAsn1 from '../asn1'
-import { ASN1_MAX_OBJECT, ASN1_MAX_PROPERTY_ID, ASN1_ARRAY_ALL } from '../enum'
+import {
+	ObjectType,
+	PropertyIdentifier,
+	ApplicationTag,
+	ASN1_MAX_OBJECT,
+	ASN1_MAX_PROPERTY_ID,
+	ASN1_ARRAY_ALL,
+} from '../enum'
 import {
 	EncodeBuffer,
 	BACNetObjectID,
@@ -171,21 +178,84 @@ export default class ReadProperty extends BacnetService {
 		const values: ApplicationData[] = []
 		if (!baAsn1.decodeIsOpeningTagNumber(buffer, offset + len, 3)) return
 		len++
-		while (apduLen - len > 1) {
-			const result = baAsn1.bacappDecodeApplicationData(
+		if (
+			objectId.type === ObjectType.SCHEDULE &&
+			property.id === PropertyIdentifier.WEEKLY_SCHEDULE
+		) {
+			const result = baAsn1.decodeWeeklySchedule(
 				buffer,
 				offset + len,
-				apduLen + offset,
-				objectId.type,
-				property.id,
+				apduLen - len,
 			)
 			if (!result) return undefined
+			values.push({
+				type: ApplicationTag.WEEKLY_SCHEDULE,
+				value: result.value,
+			} as ApplicationData)
 			len += result.len
-			delete result.len
-			values.push(result)
+		} else if (
+			objectId.type === ObjectType.SCHEDULE &&
+			property.id === PropertyIdentifier.EXCEPTION_SCHEDULE
+		) {
+			const result = baAsn1.decodeExceptionSchedule(
+				buffer,
+				offset + len,
+				apduLen - len,
+			)
+			if (!result) return undefined
+			values.push({
+				type: ApplicationTag.SPECIAL_EVENT,
+				value: result.value,
+			} as ApplicationData)
+			len += result.len
+		} else if (
+			objectId.type === ObjectType.SCHEDULE &&
+			property.id === PropertyIdentifier.EFFECTIVE_PERIOD
+		) {
+			const result = baAsn1.decodeScheduleEffectivePeriod(
+				buffer,
+				offset + len,
+				apduLen - len,
+			)
+			if (!result) return undefined
+			values.push({
+				type: ApplicationTag.DATERANGE,
+				value: result.value,
+			} as ApplicationData)
+			len += result.len
+		} else if (
+			objectId.type === ObjectType.CALENDAR &&
+			property.id === PropertyIdentifier.DATE_LIST
+		) {
+			const result = baAsn1.decodeCalendarDatelist(
+				buffer,
+				offset + len,
+				apduLen - len,
+			)
+			if (!result) return undefined
+			values.push({
+				type: ApplicationTag.CALENDAR_ENTRY,
+				value: result.value,
+			} as ApplicationData)
+			len += result.len
+		} else {
+			while (apduLen - len > 1) {
+				const result = baAsn1.bacappDecodeApplicationData(
+					buffer,
+					offset + len,
+					apduLen + offset,
+					objectId.type,
+					property.id,
+				)
+				if (!result) return undefined
+				len += result.len
+				delete result.len
+				values.push(result)
+			}
+			if (!baAsn1.decodeIsClosingTagNumber(buffer, offset + len, 3))
+				return
+			len++
 		}
-		if (!baAsn1.decodeIsClosingTagNumber(buffer, offset + len, 3)) return
-		len++
 		return {
 			len,
 			objectId,
