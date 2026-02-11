@@ -3,7 +3,8 @@ import assert from 'node:assert'
 
 import * as utils from './utils'
 import { WriteProperty } from '../../src/lib/services'
-import { ZERO_DATE } from '../../src/lib/asn1'
+import * as baAsn1 from '../../src/lib/asn1'
+const { ZERO_DATE } = baAsn1
 import {
 	ApplicationTag,
 	ObjectType,
@@ -249,12 +250,40 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 			result.value.property.id,
 			PropertyIdentifier.WEEKLY_SCHEDULE,
 		)
-		assert.ok(
-			buffer.buffer
-				.slice(0, buffer.offset)
-				.toString('hex')
-				.includes('0e'),
+
+		let payloadOffset = -1
+		for (let i = 0; i < buffer.offset; i++) {
+			if (baAsn1.decodeIsOpeningTagNumber(buffer.buffer, i, 3)) {
+				payloadOffset = i + 1
+				break
+			}
+		}
+		assert.notEqual(payloadOffset, -1)
+
+		const weekly = baAsn1.decodeWeeklySchedule(
+			buffer.buffer,
+			payloadOffset,
+			buffer.offset - payloadOffset,
 		)
+		assert.ok(weekly)
+		assert.equal(weekly.value.length, 7)
+
+		const monday = weekly.value[0]
+		const sunday = weekly.value[6]
+		assert.equal(monday.length, 1)
+		assert.equal(sunday.length, 1)
+
+		assert.equal(monday[0].time?.type, ApplicationTag.TIME)
+		assert.equal(monday[0].time?.value.getHours(), 4)
+		assert.equal(monday[0].time?.value.getMinutes(), 30)
+		assert.equal(monday[0].value?.type, ApplicationTag.UNSIGNED_INTEGER)
+		assert.equal(monday[0].value?.value, 2)
+
+		assert.equal(sunday[0].time?.type, ApplicationTag.TIME)
+		assert.equal(sunday[0].time?.value.getHours(), 13)
+		assert.equal(sunday[0].time?.value.getMinutes(), 15)
+		assert.equal(sunday[0].value?.type, ApplicationTag.UNSIGNED_INTEGER)
+		assert.equal(sunday[0].value?.value, 1)
 	})
 
 	test('should reject weekly schedule payload with more than seven days', () => {
