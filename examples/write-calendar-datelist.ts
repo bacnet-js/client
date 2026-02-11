@@ -1,4 +1,9 @@
-import Bacnet, { ApplicationTag, ObjectType, PropertyIdentifier } from '../src'
+import Bacnet, {
+	ApplicationTag,
+	ObjectType,
+	PropertyIdentifier,
+	BACNetCalendarDateListPayload,
+} from '../src'
 import * as process from 'process'
 
 const target = process.argv[2] || '192.168.40.245:47808'
@@ -22,7 +27,7 @@ client.on('error', (err) => {
 // - Array of calendar entries
 // - Entry type must be one of DATE | DATERANGE | WEEKNDAY
 // - DATERANGE value must contain exactly 2 DATE entries
-const dateList = [
+const dateList: BACNetCalendarDateListPayload = [
 	{ type: ApplicationTag.DATE, value: new Date(2025, 7, 22) },
 	{
 		type: ApplicationTag.DATERANGE,
@@ -39,7 +44,7 @@ void client
 		address,
 		{ type: ObjectType.CALENDAR, instance },
 		PropertyIdentifier.DATE_LIST,
-		dateList as any,
+		dateList,
 		{},
 	)
 	.then(() => console.log('DATE_LIST write OK'))

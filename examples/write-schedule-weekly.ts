@@ -1,4 +1,9 @@
-import Bacnet, { ApplicationTag, ObjectType, PropertyIdentifier } from '../src'
+import Bacnet, {
+	ApplicationTag,
+	ObjectType,
+	PropertyIdentifier,
+	BACNetWeeklySchedulePayload,
+} from '../src'
 import * as process from 'process'
 
 const target = process.argv[2] || '192.168.40.245:47808'
@@ -22,7 +27,7 @@ client.on('error', (err) => {
 // - Array with exactly 7 items (Monday..Sunday)
 // - Each day item must be an array of TimeValue entries
 // - TimeValue entry shape: { time: { type: TIME, value: Date }, value: BACnetValue }
-const weekly: any[] = [
+const weekly: BACNetWeeklySchedulePayload = [
 	[
 		{
 			time: {
@@ -53,7 +58,7 @@ void client
 		address,
 		{ type: ObjectType.SCHEDULE, instance },
 		PropertyIdentifier.WEEKLY_SCHEDULE,
-		weekly as any,
+		weekly,
 		{},
 	)
 	.then(() => console.log('WEEKLY_SCHEDULE write OK'))

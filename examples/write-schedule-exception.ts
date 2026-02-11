@@ -1,4 +1,9 @@
-import Bacnet, { ApplicationTag, ObjectType, PropertyIdentifier } from '../src'
+import Bacnet, {
+	ApplicationTag,
+	ObjectType,
+	PropertyIdentifier,
+	BACNetExceptionSchedulePayload,
+} from '../src'
 import * as process from 'process'
 
 const target = process.argv[2] || '192.168.40.245:47808'
@@ -23,7 +28,7 @@ client.on('error', (err) => {
 // - Entry shape: { date, events, priority }
 // - date supports DATE | DATERANGE (exactly 2 dates) | WEEKNDAY
 // - events is TimeValue[] with shape: { time: { type: TIME, value: Date }, value: BACnetValue }
-const exceptionSchedule = [
+const exceptionSchedule: BACNetExceptionSchedulePayload = [
 	{
 		date: {
 			type: ApplicationTag.DATE,
@@ -63,7 +68,7 @@ void client
 		address,
 		{ type: ObjectType.SCHEDULE, instance },
 		PropertyIdentifier.EXCEPTION_SCHEDULE,
-		exceptionSchedule as any,
+		exceptionSchedule,
 		{},
 	)
 	.then(() => console.log('EXCEPTION_SCHEDULE write OK'))
