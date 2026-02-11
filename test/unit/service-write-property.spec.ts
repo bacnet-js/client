@@ -352,6 +352,32 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		)
 	})
 
+	test('should reject exception schedule payload with invalid weeknday values', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{
+				date: {
+					type: ApplicationTag.WEEKNDAY,
+					value: { month: 42, week: 2, wday: 2 },
+				},
+				events: [],
+				priority: { type: ApplicationTag.UNSIGNED_INTEGER, value: 16 },
+			},
+		]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.EXCEPTION_SCHEDULE,
+				0xffffffff,
+				0,
+				payload as any,
+			)
+		}, /invalid raw date month/)
+	})
+
 	test('should reject exception schedule payload with invalid date range length', () => {
 		const buffer = utils.getBuffer()
 		const payload = [
@@ -518,6 +544,28 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 				invalidDateList as any,
 			)
 		}, /unsupported calendar date list entry format/)
+	})
+
+	test('should reject calendar date list payload with invalid weeknday value', () => {
+		const buffer = utils.getBuffer()
+		const invalidDateList = [
+			{
+				type: ApplicationTag.WEEKNDAY,
+				value: { month: 2, week: 0, wday: 2 },
+			},
+		]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.CALENDAR,
+				0,
+				PropertyIdentifier.DATE_LIST,
+				0xffffffff,
+				0,
+				invalidDateList as any,
+			)
+		}, /invalid raw date week/)
 	})
 
 	test('should reject calendar date list payload with invalid raw date bytes', () => {
