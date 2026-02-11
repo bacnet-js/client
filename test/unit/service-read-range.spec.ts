@@ -222,7 +222,7 @@ test.describe('ReadRangeAcknowledge', () => {
 			ackBuffer.offset,
 		)
 		assert.ok(result)
-		assert.deepStrictEqual(result.rangeBuffer, Buffer.from([1]))
+		assert.deepStrictEqual(result.rangeBuffer, Buffer.from([1, 2, 3]))
 		assert.equal(result.values, undefined)
 	})
 })

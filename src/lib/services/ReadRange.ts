@@ -315,9 +315,24 @@ export default class ReadRange extends BacnetAckService {
 			offset + len,
 			offset + apduLen,
 		)
-		const rangeBuffer = decodedRange
-			? buffer.slice(offset + len, offset + len + decodedRange.len)
-			: buffer.slice(offset + len, offset + apduLen - 3)
+		const rangeStart = offset + len
+		let rangeEnd: number
+		if (decodedRange) {
+			rangeEnd = rangeStart + decodedRange.len
+		} else {
+			const searchEnd = offset + apduLen
+			let closingTagOffset = -1
+
+			for (let i = rangeStart; i < searchEnd; i++) {
+				if (baAsn1.decodeIsClosingTagNumber(buffer, i, 5)) {
+					closingTagOffset = i
+					break
+				}
+			}
+
+			rangeEnd = closingTagOffset !== -1 ? closingTagOffset : searchEnd
+		}
+		const rangeBuffer = buffer.slice(rangeStart, rangeEnd)
 		return {
 			objectId,
 			property,
