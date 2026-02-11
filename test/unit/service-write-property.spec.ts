@@ -373,12 +373,45 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 			result.value.property.id,
 			PropertyIdentifier.EXCEPTION_SCHEDULE,
 		)
-		assert.ok(
-			buffer.buffer
-				.slice(0, buffer.offset)
-				.toString('hex')
-				.includes('2b'),
+
+		let payloadOffset = -1
+		for (let i = 0; i < buffer.offset; i++) {
+			if (baAsn1.decodeIsOpeningTagNumber(buffer.buffer, i, 3)) {
+				payloadOffset = i + 1
+				break
+			}
+		}
+		assert.notEqual(payloadOffset, -1)
+
+		const exceptionSchedule = baAsn1.decodeExceptionSchedule(
+			buffer.buffer,
+			payloadOffset,
+			buffer.offset - payloadOffset,
 		)
+		assert.ok(exceptionSchedule)
+		assert.equal(exceptionSchedule.value.length, 2)
+
+		const first = exceptionSchedule.value[0]
+		const second = exceptionSchedule.value[1]
+
+		assert.equal(first.date?.type, ApplicationTag.DATE)
+		assert.equal(first.events.length, 1)
+		assert.equal(first.events[0].time?.type, ApplicationTag.TIME)
+		assert.equal(first.events[0].value?.type, ApplicationTag.REAL)
+		assert.equal(first.events[0].value?.value, 3)
+		assert.equal(first.priority?.value, 16)
+
+		assert.equal(second.date?.type, ApplicationTag.WEEKNDAY)
+		assert.deepStrictEqual(second.date?.value, {
+			month: 0xff,
+			week: 2,
+			wday: 1,
+		})
+		assert.equal(second.events.length, 1)
+		assert.equal(second.events[0].time?.type, ApplicationTag.TIME)
+		assert.equal(second.events[0].value?.type, ApplicationTag.ENUMERATED)
+		assert.equal(second.events[0].value?.value, 4)
+		assert.equal(second.priority?.value, 8)
 	})
 
 	test('should reject exception schedule payload with invalid weeknday values', () => {
