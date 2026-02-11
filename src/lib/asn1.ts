@@ -1506,7 +1506,7 @@ const bacappDecodeData = (
 			value.value = result.value
 			break
 		case ApplicationTag.WEEKNDAY:
-			result = decodeBacnetWeekNDay(buffer, offset)
+			result = decodeBacnetWeekNDaySafe(buffer, offset, lenValueType)
 			value.len += result.len
 			value.value = result.value
 			break
@@ -1911,6 +1911,24 @@ const decodeBacnetWeekNDay = (
 		wday: buffer[offset + 2],
 	},
 })
+
+const decodeBacnetWeekNDaySafe = (
+	buffer: Buffer,
+	offset: number,
+	len: number,
+): Decode<{ month: number; week: number; wday: number }> => {
+	if (len !== 3) {
+		return {
+			len,
+			value: {
+				month: 0xff,
+				week: 0xff,
+				wday: 0xff,
+			},
+		}
+	}
+	return decodeBacnetWeekNDay(buffer, offset)
+}
 
 const decodeCalendar = (
 	buffer: Buffer,

@@ -137,4 +137,52 @@ test.describe('bacnet - ASN1 layer', () => {
 			assert.deepStrictEqual(buffer, bufferToCompare)
 		})
 	})
+
+	test.describe('decodeWeekNDay', () => {
+		test('should decode valid WEEKNDAY payload', () => {
+			const buffer = { buffer: Buffer.alloc(8), offset: 0 }
+			baAsn1.encodeTag(buffer, 101, false, 3)
+			buffer.buffer[buffer.offset++] = 2
+			buffer.buffer[buffer.offset++] = 3
+			buffer.buffer[buffer.offset++] = 4
+
+			const result = baAsn1.bacappDecodeApplicationData(
+				buffer.buffer,
+				0,
+				buffer.offset,
+				0,
+				0,
+			)
+			assert.ok(result)
+			assert.strictEqual(result.type, 101)
+			assert.deepStrictEqual(result.value, {
+				month: 2,
+				week: 3,
+				wday: 4,
+			})
+		})
+
+		test('should safely handle malformed WEEKNDAY payload length', () => {
+			const buffer = { buffer: Buffer.alloc(8), offset: 0 }
+			baAsn1.encodeTag(buffer, 101, false, 2)
+			buffer.buffer[buffer.offset++] = 2
+			buffer.buffer[buffer.offset++] = 3
+
+			const result = baAsn1.bacappDecodeApplicationData(
+				buffer.buffer,
+				0,
+				buffer.offset,
+				0,
+				0,
+			)
+			assert.ok(result)
+			assert.strictEqual(result.type, 101)
+			assert.strictEqual(result.len, 4)
+			assert.deepStrictEqual(result.value, {
+				month: 0xff,
+				week: 0xff,
+				wday: 0xff,
+			})
+		})
+	})
 })
