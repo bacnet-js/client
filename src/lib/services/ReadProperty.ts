@@ -185,7 +185,7 @@ export default class ReadProperty extends BacnetService {
 			const result = baAsn1.decodeWeeklySchedule(
 				buffer,
 				offset + len,
-				apduLen,
+				apduLen - len,
 			)
 			if (!result) return undefined
 			values.push({
@@ -200,7 +200,7 @@ export default class ReadProperty extends BacnetService {
 			const result = baAsn1.decodeExceptionSchedule(
 				buffer,
 				offset + len,
-				apduLen,
+				apduLen - len,
 			)
 			if (!result) return undefined
 			values.push({
@@ -215,7 +215,7 @@ export default class ReadProperty extends BacnetService {
 			const result = baAsn1.decodeScheduleEffectivePeriod(
 				buffer,
 				offset + len,
-				apduLen,
+				apduLen - len,
 			)
 			if (!result) return undefined
 			values.push({
@@ -230,7 +230,7 @@ export default class ReadProperty extends BacnetService {
 			const result = baAsn1.decodeCalendarDatelist(
 				buffer,
 				offset + len,
-				apduLen,
+				apduLen - len,
 			)
 			if (!result) return undefined
 			values.push({
