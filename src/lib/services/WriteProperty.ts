@@ -30,6 +30,16 @@ export default class WriteProperty extends BacnetService {
 		}
 	}
 
+	private static validateWeekNDayByte(
+		name: string,
+		value: number,
+		min: number,
+		max: number,
+	) {
+		if (value === 0xff) return
+		WriteProperty.validateRawDateByte(name, value, min, max)
+	}
+
 	private static writeDateBytes(buffer: EncodeBuffer, value: any) {
 		if (
 			value &&
@@ -103,6 +113,12 @@ export default class WriteProperty extends BacnetService {
 
 	private static encodeWeekNDayContext(buffer: EncodeBuffer, value: any) {
 		const weekNDay = value?.value ?? value
+		if (!weekNDay || typeof weekNDay !== 'object') {
+			throw new Error('Could not encode: invalid WEEKNDAY value')
+		}
+		WriteProperty.validateWeekNDayByte('month', weekNDay.month, 1, 14)
+		WriteProperty.validateWeekNDayByte('week', weekNDay.week, 1, 6)
+		WriteProperty.validateWeekNDayByte('wday', weekNDay.wday, 1, 7)
 		baAsn1.encodeTag(buffer, 2, true, 3)
 		buffer.buffer[buffer.offset++] = weekNDay.month
 		buffer.buffer[buffer.offset++] = weekNDay.week
