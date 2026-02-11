@@ -568,6 +568,30 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		}, /invalid raw date week/)
 	})
 
+	test('should reject calendar date list payload with invalid date range length', () => {
+		const buffer = utils.getBuffer()
+		const invalidDateList = [
+			{
+				type: ApplicationTag.DATERANGE,
+				value: [
+					{ type: ApplicationTag.DATE, value: new Date(2026, 1, 19) },
+				],
+			},
+		]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.CALENDAR,
+				0,
+				PropertyIdentifier.DATE_LIST,
+				0xffffffff,
+				0,
+				invalidDateList as any,
+			)
+		}, /calendar date list date range must have exactly 2 dates/)
+	})
+
 	test('should reject calendar date list payload with invalid raw date bytes', () => {
 		const buffer = utils.getBuffer()
 		const invalidDateList = [
