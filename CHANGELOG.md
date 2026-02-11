@@ -1,5 +1,12 @@
 # Changelog
 
+# [3.1.0](https://github.com/bacnet-js/client/compare/v3.0.1...v3.1.0) (2026-02-11)
+
+
+### Features
+
+* read schedule,calendar and trend ([#64](https://github.com/bacnet-js/client/issues/64)) ([0ce3996](https://github.com/bacnet-js/client/commit/0ce3996b277b3ab6f68f798c6e2cf586e30fb97e))
+
 ## [3.0.1](https://github.com/bacnet-js/client/compare/v3.0.0...v3.0.1) (2025-09-26)
 
 # [3.0.0](https://github.com/bacnet-js/client/compare/v2.1.5...v3.0.0) (2025-07-12)
