@@ -617,18 +617,46 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		const result = WriteProperty.decode(buffer.buffer, 0, buffer.offset)
 		assert.ok(result)
 		assert.equal(result.value.property.id, PropertyIdentifier.DATE_LIST)
-		assert.ok(
-			buffer.buffer
-				.slice(0, buffer.offset)
-				.toString('hex')
-				.includes('1e'),
+
+		let payloadOffset = -1
+		for (let i = 0; i < buffer.offset; i++) {
+			if (baAsn1.decodeIsOpeningTagNumber(buffer.buffer, i, 3)) {
+				payloadOffset = i + 1
+				break
+			}
+		}
+		assert.notEqual(payloadOffset, -1)
+
+		const dateList = baAsn1.decodeCalendarDatelist(
+			buffer.buffer,
+			payloadOffset,
+			buffer.offset - payloadOffset,
 		)
-		assert.ok(
-			buffer.buffer
-				.slice(0, buffer.offset)
-				.toString('hex')
-				.includes('2b'),
-		)
+		assert.ok(dateList)
+		assert.equal(dateList.value.length, 3)
+
+		const first = dateList.value[0]
+		const second = dateList.value[1]
+		const third = dateList.value[2]
+
+		assert.equal(first.type, ApplicationTag.DATE)
+		assert.equal(first.value.getFullYear(), 2025)
+		assert.equal(first.value.getMonth(), 7)
+		assert.equal(first.value.getDate(), 22)
+
+		assert.equal(second.type, ApplicationTag.DATERANGE)
+		assert.equal(second.value.length, 2)
+		assert.equal(second.value[0].type, ApplicationTag.DATE)
+		assert.equal(second.value[1].type, ApplicationTag.DATE)
+		assert.equal(second.value[0].value.getFullYear(), 2026)
+		assert.equal(second.value[0].value.getMonth(), 1)
+		assert.equal(second.value[0].value.getDate(), 19)
+		assert.equal(second.value[1].value.getFullYear(), 2026)
+		assert.equal(second.value[1].value.getMonth(), 3)
+		assert.equal(second.value[1].value.getDate(), 17)
+
+		assert.equal(third.type, ApplicationTag.WEEKNDAY)
+		assert.deepStrictEqual(third.value, { month: 2, week: 2, wday: 2 })
 	})
 
 	test('should reject calendar date list payload with unsupported entry', () => {
