@@ -384,9 +384,9 @@ export default class WriteProperty extends BacnetService {
 			baAsn1.encodeContextUnsigned(buffer, 2, arrayIndex)
 		}
 		baAsn1.encodeOpeningTag(buffer, 3)
-		values.forEach((value) =>
-			baAsn1.bacappEncodeApplicationData(buffer, value),
-		)
+			;(values as BACNetAppData[]).forEach((value) =>
+				baAsn1.bacappEncodeApplicationData(buffer, value),
+			)
 		baAsn1.encodeClosingTag(buffer, 3)
 		if (priority !== ASN1_NO_PRIORITY) {
 			baAsn1.encodeContextUnsigned(buffer, 4, priority)

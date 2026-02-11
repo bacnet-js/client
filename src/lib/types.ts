@@ -202,11 +202,19 @@ export interface BACNetRawDate {
 
 export type BACNetDateValue = Date | number | BACNetRawDate
 
-export interface BACNetDateAppData extends BACNetAppData<ApplicationTag.DATE> {
+export type BACNetDateAppData = Omit<
+	BACNetAppData<ApplicationTag.DATE>,
+	'value'
+> & {
+	type: ApplicationTag.DATE
 	value: BACNetDateValue
 }
 
-export interface BACNetTimeAppData extends BACNetAppData<ApplicationTag.TIME> {
+export type BACNetTimeAppData = Omit<
+	BACNetAppData<ApplicationTag.TIME>,
+	'value'
+> & {
+	type: ApplicationTag.TIME
 	value: Date | number
 }
 
