@@ -67,8 +67,9 @@ export default class WriteProperty extends BacnetService {
 			return
 		}
 
+		const isWildcardDate = value === baAsn1.ZERO_DATE
 		const date = value instanceof Date ? value : new Date(value)
-		if (date.getTime() === baAsn1.ZERO_DATE.getTime()) {
+		if (isWildcardDate) {
 			buffer.buffer[buffer.offset++] = 0xff
 			buffer.buffer[buffer.offset++] = 0xff
 			buffer.buffer[buffer.offset++] = 0xff
