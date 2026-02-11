@@ -383,6 +383,57 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		}, /must have exactly 2 dates/)
 	})
 
+	test('should reject exception schedule payload with missing priority', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{
+				date: {
+					type: ApplicationTag.DATE,
+					value: new Date(2024, 11, 4),
+				},
+				events: [],
+			},
+		]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.EXCEPTION_SCHEDULE,
+				0xffffffff,
+				0,
+				payload as any,
+			)
+		}, /priority must be between 1 and 16/)
+	})
+
+	test('should reject exception schedule payload with out-of-range priority', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{
+				date: {
+					type: ApplicationTag.DATE,
+					value: new Date(2024, 11, 4),
+				},
+				events: [],
+				priority: { type: ApplicationTag.UNSIGNED_INTEGER, value: 0 },
+			},
+		]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.EXCEPTION_SCHEDULE,
+				0xffffffff,
+				0,
+				payload as any,
+			)
+		}, /priority must be between 1 and 16/)
+	})
+
 	test('should encode schedule effective period payload', () => {
 		const buffer = utils.getBuffer()
 		const payload = [

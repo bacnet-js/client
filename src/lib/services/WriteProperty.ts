@@ -219,6 +219,15 @@ export default class WriteProperty extends BacnetService {
 			baAsn1.encodeClosingTag(buffer, 2)
 
 			const priorityValue = entry?.priority?.value ?? entry?.priority
+			if (
+				!Number.isInteger(priorityValue) ||
+				priorityValue < ASN1_MIN_PRIORITY ||
+				priorityValue > ASN1_MAX_PRIORITY
+			) {
+				throw new Error(
+					`Could not encode: exception schedule priority must be between ${ASN1_MIN_PRIORITY} and ${ASN1_MAX_PRIORITY}`,
+				)
+			}
 			baAsn1.encodeContextUnsigned(buffer, 3, priorityValue)
 		}
 	}
