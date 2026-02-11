@@ -173,7 +173,7 @@ export default class ReadRange extends BacnetAckService {
 					len += decodedValue.len
 					const tmpTime = decodedValue.value
 					time = new Date(
-						tmpDate.getYear(),
+						tmpDate.getFullYear(),
 						tmpDate.getMonth(),
 						tmpDate.getDate(),
 						tmpTime.getHours(),
@@ -330,7 +330,8 @@ export default class ReadRange extends BacnetAckService {
 				}
 			}
 
-			rangeEnd = closingTagOffset !== -1 ? closingTagOffset : searchEnd
+			if (closingTagOffset === -1) return undefined
+			rangeEnd = closingTagOffset
 		}
 		const rangeBuffer = buffer.slice(rangeStart, rangeEnd)
 		return {

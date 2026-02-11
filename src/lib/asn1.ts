@@ -1994,6 +1994,7 @@ export const decodeWeeklySchedule = (
 		len < apduLen &&
 		!decodeIsClosingTagNumber(buffer, offset + len, 3)
 	) {
+		if (day > 6) return undefined
 		if (decodeIsOpeningTagNumber(buffer, offset + len, 0)) {
 			len += decodeTagNumberAndValue(buffer, offset + len).len
 		}
@@ -2446,6 +2447,9 @@ export const decodeRange = (
 			},
 		})
 	}
+
+	if (offset + len >= maxOffset) return undefined
+	if (!decodeIsClosingTagNumber(buffer, offset + len, 5)) return undefined
 
 	return { len, value: result }
 }
