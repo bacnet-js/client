@@ -15,6 +15,7 @@ import {
 	BACNetPropertyID,
 	WritePropertyRequest,
 	ApplicationData,
+	BACNetWritePropertyValues,
 } from '../types'
 import { BacnetService } from './AbstractServices'
 
@@ -307,7 +308,7 @@ export default class WriteProperty extends BacnetService {
 		propertyId: number,
 		arrayIndex: number,
 		priority: number,
-		values: BACNetAppData[],
+		values: BACNetWritePropertyValues,
 	) {
 		if (
 			objectType === ObjectType.SCHEDULE &&

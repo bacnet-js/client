@@ -45,6 +45,7 @@ import {
 	BACNetObjectID,
 	BACNetPropertyID,
 	BACNetAppData,
+	BACNetWritePropertyValues,
 	BACNetTimestamp,
 	TransportSettings,
 	ClientOptions,
@@ -973,7 +974,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		propertyId: number,
-		values: BACNetAppData[],
+		values: BACNetWritePropertyValues,
 		options: WritePropertyOptions,
 	): Promise<void> {
 		const settings: WritePropertyOptions = {

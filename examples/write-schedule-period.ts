@@ -1,4 +1,9 @@
-import Bacnet, { ApplicationTag, ObjectType, PropertyIdentifier } from '../src'
+import Bacnet, {
+	ApplicationTag,
+	ObjectType,
+	PropertyIdentifier,
+	BACNetEffectivePeriodPayload,
+} from '../src'
 import * as process from 'process'
 
 const target = process.argv[2] || '192.168.40.245:47808'
@@ -20,7 +25,7 @@ client.on('error', (err) => {
 
 // EFFECTIVE_PERIOD payload:
 // - Array with exactly 2 DATE values: [startDate, endDate]
-const effectivePeriod = [
+const effectivePeriod: BACNetEffectivePeriodPayload = [
 	{ type: ApplicationTag.DATE, value: new Date(2025, 7, 22) },
 	{ type: ApplicationTag.DATE, value: new Date(2026, 3, 17) },
 ]
@@ -30,7 +35,7 @@ void client
 		address,
 		{ type: ObjectType.SCHEDULE, instance },
 		PropertyIdentifier.EFFECTIVE_PERIOD,
-		effectivePeriod as any,
+		effectivePeriod,
 		{},
 	)
 	.then(() => console.log('EFFECTIVE_PERIOD write OK'))
