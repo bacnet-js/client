@@ -2022,7 +2022,9 @@ export const decodeWeeklySchedule = (
 			day += 1
 		}
 	}
-	len++
+	if (len >= apduLen) return undefined
+	if (!decodeIsClosingTagNumber(buffer, offset + len, 3)) return undefined
+	len += decodeTagNumberAndValue(buffer, offset + len).len
 	return { len, value: Object.values(result) }
 }
 
@@ -2189,7 +2191,9 @@ export const decodeExceptionSchedule = (
 		len += priority.len
 		result.push(decoded)
 	}
-	len++
+	if (len >= apduLen) return undefined
+	if (!decodeIsClosingTagNumber(buffer, offset + len, 3)) return undefined
+	len += decodeTagNumberAndValue(buffer, offset + len).len
 	return { len, value: result }
 }
 
@@ -2219,7 +2223,9 @@ export const decodeScheduleEffectivePeriod = (
 		result.push(value as ApplicationData)
 		len += value.len
 	}
-	len++
+	if (len >= apduLen) return undefined
+	if (!decodeIsClosingTagNumber(buffer, offset + len, 3)) return undefined
+	len += decodeTagNumberAndValue(buffer, offset + len).len
 	return { len, value: result }
 }
 
@@ -2291,7 +2297,9 @@ export const decodeCalendarDatelist = (
 			len += value.len
 		}
 	}
-	len++
+	if (len >= apduLen) return undefined
+	if (!decodeIsClosingTagNumber(buffer, offset + len, 3)) return undefined
+	len += decodeTagNumberAndValue(buffer, offset + len).len
 	return { len, value: result }
 }
 
