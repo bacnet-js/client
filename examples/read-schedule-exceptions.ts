@@ -19,7 +19,8 @@ async function main() {
 			{ type: ObjectType.SCHEDULE, instance },
 			PropertyIdentifier.EXCEPTION_SCHEDULE,
 		)
-		value.values.forEach((entry) => console.log(entry))
+		const specialEvents = (value.values[0]?.value as any[]) || []
+		specialEvents.forEach((entry) => console.log(entry))
 	} catch (err) {
 		console.error(err)
 	} finally {

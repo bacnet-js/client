@@ -2,6 +2,7 @@ import * as baAsn1 from '../asn1'
 import {
 	ObjectType,
 	PropertyIdentifier,
+	ApplicationTag,
 	ASN1_MAX_OBJECT,
 	ASN1_MAX_PROPERTY_ID,
 	ASN1_ARRAY_ALL,
@@ -187,7 +188,10 @@ export default class ReadProperty extends BacnetService {
 				apduLen,
 			)
 			if (!result) return undefined
-			values.push(...result.value)
+			values.push({
+				type: ApplicationTag.WEEKLY_SCHEDULE,
+				value: result.value,
+			} as ApplicationData)
 			len += result.len
 		} else if (
 			objectId.type === ObjectType.SCHEDULE &&
@@ -199,7 +203,10 @@ export default class ReadProperty extends BacnetService {
 				apduLen,
 			)
 			if (!result) return undefined
-			values.push(...result.value)
+			values.push({
+				type: ApplicationTag.SPECIAL_EVENT,
+				value: result.value,
+			} as ApplicationData)
 			len += result.len
 		} else if (
 			objectId.type === ObjectType.SCHEDULE &&
@@ -211,7 +218,10 @@ export default class ReadProperty extends BacnetService {
 				apduLen,
 			)
 			if (!result) return undefined
-			values.push(...result.value)
+			values.push({
+				type: ApplicationTag.DATERANGE,
+				value: result.value,
+			} as ApplicationData)
 			len += result.len
 		} else if (
 			objectId.type === ObjectType.CALENDAR &&
@@ -223,7 +233,10 @@ export default class ReadProperty extends BacnetService {
 				apduLen,
 			)
 			if (!result) return undefined
-			values.push(...result.value)
+			values.push({
+				type: ApplicationTag.CALENDAR_ENTRY,
+				value: result.value,
+			} as ApplicationData)
 			len += result.len
 		} else {
 			while (apduLen - len > 1) {

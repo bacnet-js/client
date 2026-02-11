@@ -25,7 +25,8 @@ async function main() {
 			{ type: ObjectType.SCHEDULE, instance },
 			PropertyIdentifier.WEEKLY_SCHEDULE,
 		)
-		value.values.forEach((day, index) => {
+		const weekly = (value.values[0]?.value as any[]) || []
+		weekly.forEach((day, index) => {
 			console.log(`day ${index}:`, day)
 		})
 	} catch (err) {

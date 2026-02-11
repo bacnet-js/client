@@ -100,7 +100,9 @@ test.describe('ReadPropertyAcknowledge schedule/calendar compatibility', () => {
 		assert.ok(result)
 		assert.equal(result.objectId.type, ObjectType.SCHEDULE)
 		assert.equal(result.property.id, PropertyIdentifier.WEEKLY_SCHEDULE)
-		const values = result.values as any[]
+		const weekly = result.values[0]
+		assert.equal(weekly.type, ApplicationTag.WEEKLY_SCHEDULE)
+		const values = weekly.value as any[]
 		assert.equal(values.length, 7)
 		assert.equal(values[0][0].value.value, 21.5)
 		assert.ok(values[0][0].time.value instanceof Date)
@@ -163,7 +165,9 @@ test.describe('ReadPropertyAcknowledge schedule/calendar compatibility', () => {
 			buffer.offset,
 		)
 		assert.ok(result)
-		const values = result.values as any[]
+		const specialEvent = result.values[0]
+		assert.equal(specialEvent.type, ApplicationTag.SPECIAL_EVENT)
+		const values = specialEvent.value as any[]
 		assert.ok(values.length >= 2)
 		assert.equal(values[0].priority.value, 8)
 		assert.equal(values[0].date.type, ApplicationTag.DATE)
@@ -206,7 +210,9 @@ test.describe('ReadPropertyAcknowledge schedule/calendar compatibility', () => {
 			buffer.offset,
 		)
 		assert.ok(result)
-		const values = result.values as any[]
+		const dateRange = result.values[0]
+		assert.equal(dateRange.type, ApplicationTag.DATERANGE)
+		const values = dateRange.value as any[]
 		assert.equal(values.length, 2)
 		assert.ok(values[0].value instanceof Date)
 		assert.ok(values[1].value instanceof Date)
@@ -247,7 +253,9 @@ test.describe('ReadPropertyAcknowledge schedule/calendar compatibility', () => {
 			buffer.offset,
 		)
 		assert.ok(result)
-		const values = result.values as any[]
+		const calendarEntry = result.values[0]
+		assert.equal(calendarEntry.type, ApplicationTag.CALENDAR_ENTRY)
+		const values = calendarEntry.value as any[]
 		assert.ok(values.length >= 2)
 		assert.ok(
 			values.some((entry) => entry?.type === ApplicationTag.WEEKNDAY),

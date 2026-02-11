@@ -19,7 +19,7 @@ async function main() {
 			{ type: ObjectType.SCHEDULE, instance },
 			PropertyIdentifier.EFFECTIVE_PERIOD,
 		)
-		console.log(value)
+		console.log(value.values[0]?.value || [])
 	} catch (err) {
 		console.error(err)
 	} finally {

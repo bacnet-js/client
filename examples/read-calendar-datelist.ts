@@ -19,7 +19,8 @@ async function main() {
 			{ type: ObjectType.CALENDAR, instance },
 			PropertyIdentifier.DATE_LIST,
 		)
-		value.values.forEach((entry) => console.log(entry))
+		const entries = (value.values[0]?.value as any[]) || []
+		entries.forEach((entry) => console.log(entry))
 	} catch (err) {
 		console.error(err)
 	} finally {
