@@ -511,6 +511,49 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		assert.ok(hex.includes('ffffffff'))
 	})
 
+	test('should encode literal 1900-01-01 as a concrete date (not wildcard)', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{ type: ApplicationTag.DATE, value: new Date(1900, 0, 1) },
+			{ type: ApplicationTag.DATE, value: new Date(1900, 0, 2) },
+		]
+
+		WriteProperty.encode(
+			buffer,
+			ObjectType.SCHEDULE,
+			0,
+			PropertyIdentifier.EFFECTIVE_PERIOD,
+			0xffffffff,
+			0,
+			payload as any,
+		)
+
+		let payloadOffset = -1
+		for (let i = 0; i < buffer.offset; i++) {
+			if (baAsn1.decodeIsOpeningTagNumber(buffer.buffer, i, 3)) {
+				payloadOffset = i + 1
+				break
+			}
+		}
+		assert.notEqual(payloadOffset, -1)
+
+		const decoded = baAsn1.decodeScheduleEffectivePeriod(
+			buffer.buffer,
+			payloadOffset,
+			buffer.offset - payloadOffset,
+		)
+		assert.ok(decoded)
+		assert.equal(decoded.value.length, 2)
+		assert.equal(decoded.value[0].type, ApplicationTag.DATE)
+		assert.equal(decoded.value[1].type, ApplicationTag.DATE)
+
+		// Concrete 1900-01-01 must not be treated as wildcard ZERO_DATE sentinel.
+		assert.notStrictEqual(decoded.value[0].value, ZERO_DATE)
+		assert.equal((decoded.value[0].value as Date).getFullYear(), 1900)
+		assert.equal((decoded.value[0].value as Date).getMonth(), 0)
+		assert.equal((decoded.value[0].value as Date).getDate(), 1)
+	})
+
 	test('should encode calendar date list payload', () => {
 		const buffer = utils.getBuffer()
 		const payload = [
