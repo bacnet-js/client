@@ -51,7 +51,10 @@ export default class EventInformation extends BacnetService {
 		len++
 		const alarms = []
 
-		while (apduLen - 3 - len > 0) {
+		while (
+			len < apduLen &&
+			!baAsn1.decodeIsClosingTagNumber(buffer, offset + len, 0)
+		) {
 			const value: any = {}
 
 			result = baAsn1.decodeTagNumberAndValue(buffer, offset + len)
@@ -89,6 +92,8 @@ export default class EventInformation extends BacnetService {
 
 			for (let i = 0; i < 3; i++) {
 				if (result.tagNumber !== ApplicationTag.NULL) {
+					result = baAsn1.decodeTagNumberAndValue(buffer, offset + len)
+					len += result.len
 					decodedValue = baAsn1.decodeApplicationDate(
 						buffer,
 						offset + len,
@@ -110,6 +115,8 @@ export default class EventInformation extends BacnetService {
 						time.getSeconds(),
 						time.getMilliseconds(),
 					)
+					result = baAsn1.decodeTagNumberAndValue(buffer, offset + len)
+					len += result.len
 				} else {
 					len += result.value
 				}
