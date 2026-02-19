@@ -1368,7 +1368,9 @@ const decodeDateSafe = (
 	buffer: Buffer,
 	offset: number,
 	lenValue: number,
-): Decode<Date> => {
+): Decode<Date> & {
+	raw?: { year: number; month: number; day: number; wday: number }
+} => {
 	if (lenValue !== 4) {
 		return {
 			len: lenValue,
@@ -1543,7 +1545,9 @@ const bacappDecodeData = (
 			result = decodeDateSafe(buffer, offset, lenValueType)
 			value.len += result.len
 			value.value = result.value
-			value.raw = (result as any).raw
+			if (result.raw) {
+				value.raw = result.raw
+			}
 			break
 		case ApplicationTag.TIME:
 			result = decodeBacnetTimeSafe(buffer, offset, lenValueType)
