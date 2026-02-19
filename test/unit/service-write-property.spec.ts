@@ -440,6 +440,37 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		}, /invalid raw date month/)
 	})
 
+	test('should allow exception schedule date with raw even-month marker', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{
+				date: {
+					type: ApplicationTag.DATE,
+					value: { year: 0xff, month: 14, day: 0xff, wday: 0xff },
+				},
+				events: [
+					{
+						time: { type: ApplicationTag.TIME, value: new Date(2025, 0, 1, 0, 0) },
+						value: { type: ApplicationTag.NULL, value: null },
+					},
+				],
+				priority: { type: ApplicationTag.UNSIGNED_INTEGER, value: 16 },
+			},
+		]
+
+		assert.doesNotThrow(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.EXCEPTION_SCHEDULE,
+				0xffffffff,
+				0,
+				payload as any,
+			)
+		})
+	})
+
 	test('should reject exception schedule payload with invalid date range length', () => {
 		const buffer = utils.getBuffer()
 		const payload = [
