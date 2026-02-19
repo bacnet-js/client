@@ -1,5 +1,4 @@
 import * as baAsn1 from '../asn1'
-import { ApplicationTag } from '../enum'
 import { EncodeBuffer, BACNetEvent } from '../types'
 import { BacnetService } from './AbstractServices'
 
@@ -51,7 +50,10 @@ export default class EventInformation extends BacnetService {
 		len++
 		const alarms = []
 
-		while (apduLen - 3 - len > 0) {
+		while (
+			len < apduLen &&
+			!baAsn1.decodeIsClosingTagNumber(buffer, offset + len, 0)
+		) {
 			const value: any = {}
 
 			result = baAsn1.decodeTagNumberAndValue(buffer, offset + len)
@@ -88,31 +90,21 @@ export default class EventInformation extends BacnetService {
 			value.eventTimeStamps = []
 
 			for (let i = 0; i < 3; i++) {
-				if (result.tagNumber !== ApplicationTag.NULL) {
-					decodedValue = baAsn1.decodeApplicationDate(
-						buffer,
-						offset + len,
-					)
-					len += decodedValue.len
-					const date = decodedValue.value
-					decodedValue = baAsn1.decodeApplicationTime(
-						buffer,
-						offset + len,
-					)
-					len += decodedValue.len
-					const time = decodedValue.value
-					value.eventTimeStamps[i] = new Date(
-						date.getFullYear(),
-						date.getMonth(),
-						date.getDate(),
-						time.getHours(),
-						time.getMinutes(),
-						time.getSeconds(),
-						time.getMilliseconds(),
-					)
-				} else {
-					len += result.value
-				}
+				decodedValue = baAsn1.decodeApplicationDate(buffer, offset + len)
+				len += decodedValue.len
+				const date = decodedValue.value
+				decodedValue = baAsn1.decodeApplicationTime(buffer, offset + len)
+				len += decodedValue.len
+				const time = decodedValue.value
+				value.eventTimeStamps[i] = new Date(
+					date.getFullYear(),
+					date.getMonth(),
+					date.getDate(),
+					time.getHours(),
+					time.getMinutes(),
+					time.getSeconds(),
+					time.getMilliseconds(),
+				)
 			}
 
 			len++
