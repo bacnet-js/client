@@ -236,17 +236,71 @@ test.describe('ReadPropertyAcknowledge schedule/calendar compatibility', () => {
 		)
 		assert.ok(result)
 		const specialEvent = result.values[0]
-			const values = specialEvent.value as any[]
-			assert.equal(values.length, 1)
-			const date = values[0].date
-			assert.equal(date.type, ApplicationTag.DATE)
-			// Partial wildcard raw dates normalize to ZERO_DATE in value while raw preserves source bytes.
-			assert.equal(date.value.getTime(), baAsn1.ZERO_DATE.getTime())
-			assert.deepStrictEqual(date.raw, {
-				year: 0xff,
+		const values = specialEvent.value as any[]
+		assert.equal(values.length, 1)
+		const date = values[0].date
+		assert.equal(date.type, ApplicationTag.DATE)
+		// Partial wildcard raw dates normalize to ZERO_DATE in value while raw preserves source bytes.
+		assert.equal(date.value.getTime(), baAsn1.ZERO_DATE.getTime())
+		assert.deepStrictEqual(date.raw, {
+			year: 0xff,
 			month: 0xff,
 			day: 17,
 			wday: 0xff,
+		})
+	})
+
+	test('should fall back to ZERO_DATE for invalid concrete raw date in exception schedule', () => {
+		const buffer = utils.getBuffer()
+		encodeReadPropertyAckHeader(
+			buffer,
+			ObjectType.SCHEDULE,
+			17,
+			PropertyIdentifier.EXCEPTION_SCHEDULE,
+		)
+
+		baAsn1.encodeOpeningTag(buffer, 0)
+		baAsn1.encodeTag(buffer, 0, true, 4)
+		encodeRawDateParts(buffer, {
+			year: 124,
+			month: 0,
+			day: 32,
+			wday: 2,
+		})
+		baAsn1.encodeClosingTag(buffer, 0)
+		baAsn1.encodeOpeningTag(buffer, 2)
+		baAsn1.bacappEncodeApplicationData(buffer, {
+			type: ApplicationTag.TIME,
+			value: new Date(2024, 0, 2, 6, 30, 0, 0),
+		})
+		baAsn1.bacappEncodeApplicationData(buffer, {
+			type: ApplicationTag.ENUMERATED,
+			value: 1,
+		})
+		baAsn1.encodeClosingTag(buffer, 2)
+		baAsn1.bacappEncodeApplicationData(buffer, {
+			type: ApplicationTag.UNSIGNED_INTEGER,
+			value: 8,
+		})
+		baAsn1.encodeClosingTag(buffer, 3)
+
+		const result = ReadProperty.decodeAcknowledge(
+			buffer.buffer,
+			0,
+			buffer.offset,
+		)
+		assert.ok(result)
+		const specialEvent = result.values[0]
+		const values = specialEvent.value as any[]
+		assert.equal(values.length, 1)
+		const date = values[0].date
+		assert.equal(date.type, ApplicationTag.DATE)
+		assert.equal(date.value.getTime(), baAsn1.ZERO_DATE.getTime())
+		assert.deepStrictEqual(date.raw, {
+			year: 124,
+			month: 0,
+			day: 32,
+			wday: 2,
 		})
 	})
 
