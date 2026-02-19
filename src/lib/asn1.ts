@@ -1330,7 +1330,9 @@ const isInvalidConcreteRawDate = (raw: {
 export const decodeDate = (
 	buffer: Buffer,
 	offset: number,
-): Decode<Date> & { raw: { year: number; month: number; day: number; wday: number } } => {
+): Decode<Date> & {
+	raw: { year: number; month: number; day: number; wday: number }
+} => {
 	const raw = {
 		year: buffer[offset],
 		month: buffer[offset + 1],
