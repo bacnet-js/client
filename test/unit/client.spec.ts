@@ -83,7 +83,10 @@ test.describe('bacnet - client', () => {
 
 		let sentRequest: Buffer | undefined
 		client._getInvokeId = () => 7
-		client._getApduBuffer = () => ({ buffer: Buffer.alloc(1482), offset: 4 })
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(1482),
+			offset: 4,
+		})
 		client.sendBvlc = (_receiver, buffer) => {
 			sentRequest = Buffer.from(buffer.buffer.subarray(0, buffer.offset))
 		}
@@ -98,12 +101,17 @@ test.describe('bacnet - client', () => {
 			},
 		}
 
-		const events = await client.getEventInformation({ address: '127.0.0.1' })
+		const events = await client.getEventInformation({
+			address: '127.0.0.1',
+		})
 
 		assert.ok(sentRequest)
 		const npdu = baNpdu.decode(sentRequest, 4)
 		assert.ok(npdu)
-		const apdu = baApdu.decodeConfirmedServiceRequest(sentRequest, 4 + npdu.len)
+		const apdu = baApdu.decodeConfirmedServiceRequest(
+			sentRequest,
+			4 + npdu.len,
+		)
 		const payloadOffset = 4 + npdu.len + apdu.len
 		assert.strictEqual(payloadOffset, sentRequest.length)
 		assert.deepStrictEqual(events, expected.events)
