@@ -362,7 +362,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		if (!moreFollows) {
 			const apduBuffer = Buffer.concat(this._segmentStore)
 			this._segmentStore = []
-			msg.type &= ~PduConReqBit.SEGMENTED_MESSAGE
+			msg.header.apduType &= ~PduConReqBit.SEGMENTED_MESSAGE
 			this._handlePdu(apduBuffer, 0, apduBuffer.length, msg.header)
 		}
 	}
@@ -590,7 +590,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 								| ConfirmedServiceRequestMessage
 								| ComplexAckMessage
 							),
-						true,
+						false,
 						buffer,
 						offset + msg.len,
 						length - msg.len,
