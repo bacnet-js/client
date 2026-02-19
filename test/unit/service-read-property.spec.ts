@@ -236,13 +236,14 @@ test.describe('ReadPropertyAcknowledge schedule/calendar compatibility', () => {
 		)
 		assert.ok(result)
 		const specialEvent = result.values[0]
-		const values = specialEvent.value as any[]
-		assert.equal(values.length, 1)
-		const date = values[0].date
-		assert.equal(date.type, ApplicationTag.DATE)
-		assert.equal(date.value.getTime(), baAsn1.ZERO_DATE.getTime())
-		assert.deepStrictEqual(date.raw, {
-			year: 0xff,
+			const values = specialEvent.value as any[]
+			assert.equal(values.length, 1)
+			const date = values[0].date
+			assert.equal(date.type, ApplicationTag.DATE)
+			// Partial wildcard raw dates normalize to ZERO_DATE in value while raw preserves source bytes.
+			assert.equal(date.value.getTime(), baAsn1.ZERO_DATE.getTime())
+			assert.deepStrictEqual(date.raw, {
+				year: 0xff,
 			month: 0xff,
 			day: 17,
 			wday: 0xff,
