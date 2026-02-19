@@ -127,6 +127,21 @@ export default class WriteProperty extends BacnetService {
 		buffer.buffer[buffer.offset++] = weekNDay.wday
 	}
 
+	private static encodeDateRangeContext(
+		buffer: EncodeBuffer,
+		value: any,
+		invalidMessage: string,
+	) {
+		if (!Array.isArray(value) || value.length !== 2) {
+			throw new Error(invalidMessage)
+		}
+		baAsn1.encodeOpeningTag(buffer, 1)
+		for (const row of value || []) {
+			WriteProperty.encodeDate(buffer, WriteProperty.extractDateInput(row))
+		}
+		baAsn1.encodeClosingTag(buffer, 1)
+	}
+
 	private static encodeWriteHeader(
 		buffer: EncodeBuffer,
 		objectType: number,
@@ -189,19 +204,11 @@ export default class WriteProperty extends BacnetService {
 			return
 		}
 		if (date?.type === ApplicationTag.DATERANGE) {
-			if (!Array.isArray(date.value) || date.value.length !== 2) {
-				throw new Error(
-					'Could not encode: exception schedule date range must have exactly 2 dates',
-				)
-			}
-			baAsn1.encodeOpeningTag(buffer, 1)
-			for (const row of date.value || []) {
-				WriteProperty.encodeDate(
-					buffer,
-					WriteProperty.extractDateInput(row),
-				)
-			}
-			baAsn1.encodeClosingTag(buffer, 1)
+			WriteProperty.encodeDateRangeContext(
+				buffer,
+				date.value,
+				'Could not encode: exception schedule date range must have exactly 2 dates',
+			)
 			return
 		}
 		if (date?.type === ApplicationTag.WEEKNDAY) {
@@ -279,19 +286,11 @@ export default class WriteProperty extends BacnetService {
 					0,
 				)
 			} else if (entry?.type === ApplicationTag.DATERANGE) {
-				if (!Array.isArray(entry.value) || entry.value.length !== 2) {
-					throw new Error(
-						'Could not encode: calendar date list date range must have exactly 2 dates',
-					)
-				}
-				baAsn1.encodeOpeningTag(buffer, 1)
-				for (const row of entry.value || []) {
-					WriteProperty.encodeDate(
-						buffer,
-						WriteProperty.extractDateInput(row),
-					)
-				}
-				baAsn1.encodeClosingTag(buffer, 1)
+				WriteProperty.encodeDateRangeContext(
+					buffer,
+					entry.value,
+					'Could not encode: calendar date list date range must have exactly 2 dates',
+				)
 			} else if (entry?.type === ApplicationTag.WEEKNDAY) {
 				WriteProperty.encodeWeekNDayContext(buffer, entry)
 			} else {
