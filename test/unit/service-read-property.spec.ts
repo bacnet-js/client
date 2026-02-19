@@ -372,6 +372,8 @@ test.describe('ReadPropertyAcknowledge schedule/calendar compatibility', () => {
 		assert.equal(dateRange.type, ApplicationTag.DATERANGE)
 		const values = dateRange.value as any[]
 		assert.equal(values.length, 2)
+		// Partial wildcard raw dates (e.g. month=0xff) cannot be represented as concrete JS Date values.
+		// The decoder therefore normalizes value to ZERO_DATE while preserving original raw bytes.
 		assert.equal(values[0].value.getTime(), baAsn1.ZERO_DATE.getTime())
 		assert.equal(values[1].value.getTime(), baAsn1.ZERO_DATE.getTime())
 		assert.deepStrictEqual(values[0].raw, {
