@@ -450,7 +450,10 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 				},
 				events: [
 					{
-						time: { type: ApplicationTag.TIME, value: new Date(2025, 0, 1, 0, 0) },
+						time: {
+							type: ApplicationTag.TIME,
+							value: new Date(2025, 0, 1, 0, 0),
+						},
 						value: { type: ApplicationTag.NULL, value: null },
 					},
 				],
