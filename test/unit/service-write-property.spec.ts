@@ -320,6 +320,22 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		}, /should be an array/)
 	})
 
+	test('should reject weekly schedule payload when payload is not an array', () => {
+		const buffer = utils.getBuffer()
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.WEEKLY_SCHEDULE,
+				0xffffffff,
+				0,
+				null as any,
+			)
+		}, /weekly schedule should be an array/)
+	})
+
 	test('should encode exception schedule payload', () => {
 		const buffer = utils.getBuffer()
 		const payload = [

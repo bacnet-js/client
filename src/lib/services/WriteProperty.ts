@@ -167,6 +167,9 @@ export default class WriteProperty extends BacnetService {
 		buffer: EncodeBuffer,
 		values: any[],
 	) {
+		if (!Array.isArray(values)) {
+			throw new Error('Could not encode: weekly schedule should be an array')
+		}
 		if (values.length !== 7) {
 			throw new Error(
 				'Could not encode: weekly schedule should have exactly 7 days',
