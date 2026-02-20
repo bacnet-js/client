@@ -295,6 +295,9 @@ export default class WriteProperty extends BacnetService {
 		buffer: EncodeBuffer,
 		values: any[],
 	) {
+		if (!Array.isArray(values)) {
+			throw new Error('Could not encode: calendar date list should be an array')
+		}
 		for (const entry of values) {
 			if (entry?.type === ApplicationTag.DATE) {
 				WriteProperty.encodeDate(

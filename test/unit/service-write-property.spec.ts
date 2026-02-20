@@ -772,6 +772,26 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		assert.deepStrictEqual(third.value, { month: 2, week: 2, wday: 2 })
 	})
 
+	test('should reject calendar date list payload when values is not an array', () => {
+		const buffer = utils.getBuffer()
+		const payload = {
+			0: { type: ApplicationTag.DATE, value: new Date(2025, 7, 22) },
+			length: 1,
+		}
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.CALENDAR,
+				0,
+				PropertyIdentifier.DATE_LIST,
+				0xffffffff,
+				0,
+				payload as any,
+			)
+		}, /calendar date list should be an array/)
+	})
+
 	test('should reject calendar date list payload with unsupported entry', () => {
 		const buffer = utils.getBuffer()
 		const invalidDateList = [
