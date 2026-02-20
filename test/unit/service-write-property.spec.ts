@@ -430,6 +430,48 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		assert.equal(second.priority?.value, 8)
 	})
 
+	test('should reject exception schedule payload when values is not an array', () => {
+		const buffer = utils.getBuffer()
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.EXCEPTION_SCHEDULE,
+				0xffffffff,
+				0,
+				null as any,
+			)
+		}, /exception schedule values must be an array/)
+	})
+
+	test('should reject exception schedule payload with non-array events', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{
+				date: {
+					type: ApplicationTag.DATE,
+					value: new Date(2024, 11, 4),
+				},
+				events: {},
+				priority: { type: ApplicationTag.UNSIGNED_INTEGER, value: 16 },
+			},
+		]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.EXCEPTION_SCHEDULE,
+				0xffffffff,
+				0,
+				payload as any,
+			)
+		}, /events must be an array/)
+	})
+
 	test('should reject exception schedule payload with invalid weeknday values', () => {
 		const buffer = utils.getBuffer()
 		const payload = [

@@ -227,13 +227,24 @@ export default class WriteProperty extends BacnetService {
 		buffer: EncodeBuffer,
 		values: any[],
 	) {
-		for (const entry of values) {
+		if (!Array.isArray(values)) {
+			throw new Error(
+				'Could not encode: exception schedule values must be an array',
+			)
+		}
+		for (const [index, entry] of values.entries()) {
 			baAsn1.encodeOpeningTag(buffer, 0)
 			WriteProperty.encodeExceptionDate(buffer, entry.date)
 			baAsn1.encodeClosingTag(buffer, 0)
 
+			const events = entry?.events
+			if (events != null && !Array.isArray(events)) {
+				throw new Error(
+					`Could not encode: exception schedule entry ${index} events must be an array`,
+				)
+			}
 			baAsn1.encodeOpeningTag(buffer, 2)
-			for (const event of entry.events || []) {
+			for (const event of events || []) {
 				const timeValue = event?.time?.value ?? event?.time
 				baAsn1.bacappEncodeApplicationData(buffer, {
 					type: ApplicationTag.TIME,
