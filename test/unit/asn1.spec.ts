@@ -262,5 +262,18 @@ test.describe('bacnet - ASN1 layer', () => {
 			assert.equal(decoded.value.getMinutes(), 30)
 			assert.equal(decoded.value.getSeconds(), 5)
 		})
+
+		test('should reject invalid TIME timestamp in generic encoder', () => {
+			const buffer = { buffer: Buffer.alloc(16), offset: 0 }
+
+			assert.throws(
+				() =>
+					baAsn1.bacappEncodeApplicationData(buffer, {
+						type: ApplicationTag.TIME,
+						value: Number.POSITIVE_INFINITY,
+					} as any),
+				/invalid timestamp/,
+			)
+		})
 	})
 })

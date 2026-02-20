@@ -510,8 +510,14 @@ export const encodeApplicationTime = (
 	buffer: EncodeBuffer,
 	value: Date | number,
 ): void => {
-	const normalized =
-		typeof value === 'number' ? new Date(value) : value
+	if (typeof value === 'number' && !Number.isFinite(value)) {
+		throw new Error(`invalid timestamp: ${value}`)
+	}
+
+	const normalized = typeof value === 'number' ? new Date(value) : value
+	if (Number.isNaN(normalized.getTime())) {
+		throw new Error(`invalid time: ${value}`)
+	}
 
 	encodeTag(buffer, ApplicationTag.TIME, false, 4)
 	encodeBacnetTime(buffer, normalized)
