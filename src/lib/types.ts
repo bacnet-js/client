@@ -190,6 +190,7 @@ export interface BACNetAppData<
 > {
 	type: Tag
 	value: Type
+	raw?: unknown
 	encoding?: number
 }
 

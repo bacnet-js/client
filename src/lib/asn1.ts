@@ -1298,25 +1298,69 @@ export const decodeBitstring = (
 	}
 }
 
-export const decodeDate = (buffer: Buffer, offset: number): Decode<Date> => {
+const isWildcardRawDate = (raw: {
+	year: number
+	month: number
+	day: number
+	wday: number
+}): boolean =>
+	raw.year === 0xff &&
+	raw.month === 0xff &&
+	raw.day === 0xff &&
+	raw.wday === 0xff
+
+const hasPartialWildcardRawDate = (raw: {
+	year: number
+	month: number
+	day: number
+	wday: number
+}): boolean =>
+	!isWildcardRawDate(raw) &&
+	(raw.year === 0xff ||
+		raw.month === 0xff ||
+		raw.day === 0xff ||
+		raw.wday === 0xff)
+
+const isInvalidConcreteRawDate = (raw: {
+	year: number
+	month: number
+	day: number
+}): boolean => raw.month < 1 || raw.month > 12 || raw.day < 1 || raw.day > 31
+
+export const decodeDate = (
+	buffer: Buffer,
+	offset: number,
+): Decode<Date> & {
+	raw: { year: number; month: number; day: number; wday: number }
+} => {
+	const raw = {
+		year: buffer[offset],
+		month: buffer[offset + 1],
+		day: buffer[offset + 2],
+		wday: buffer[offset + 3],
+	}
+
 	let date: Date
-	const year = buffer[offset] + 1900
-	const month = buffer[offset + 1]
-	const day = buffer[offset + 2]
-	const wday = buffer[offset + 3]
 	if (
-		month === 0xff &&
-		day === 0xff &&
-		wday === 0xff &&
-		year - 1900 === 0xff
+		isWildcardRawDate(raw) ||
+		hasPartialWildcardRawDate(raw) ||
+		isInvalidConcreteRawDate(raw)
 	) {
 		date = ZERO_DATE
 	} else {
-		date = new Date(year, month - 1, day)
+		const year = raw.year + 1900
+		const candidate = new Date(year, raw.month - 1, raw.day)
+		const normalized =
+			candidate.getFullYear() === year &&
+			candidate.getMonth() === raw.month - 1 &&
+			candidate.getDate() === raw.day
+		date = normalized ? candidate : ZERO_DATE
 	}
+
 	return {
 		len: 4,
 		value: date,
+		raw,
 	}
 }
 
@@ -1324,7 +1368,9 @@ const decodeDateSafe = (
 	buffer: Buffer,
 	offset: number,
 	lenValue: number,
-): Decode<Date> => {
+): Decode<Date> & {
+	raw?: { year: number; month: number; day: number; wday: number }
+} => {
 	if (lenValue !== 4) {
 		return {
 			len: lenValue,
@@ -1499,6 +1545,9 @@ const bacappDecodeData = (
 			result = decodeDateSafe(buffer, offset, lenValueType)
 			value.len += result.len
 			value.value = result.value
+			if (result.raw) {
+				value.raw = result.raw
+			}
 			break
 		case ApplicationTag.TIME:
 			result = decodeBacnetTimeSafe(buffer, offset, lenValueType)
