@@ -636,6 +636,27 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		assert.ok(hex.includes('ffffffff'))
 	})
 
+	test('should reject effective period payload when values is not an array', () => {
+		const buffer = utils.getBuffer()
+		const payload = {
+			0: { type: ApplicationTag.DATE, value: new Date(2024, 0, 1) },
+			1: { type: ApplicationTag.DATE, value: ZERO_DATE },
+			length: 2,
+		}
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.EFFECTIVE_PERIOD,
+				0xffffffff,
+				0,
+				payload as any,
+			)
+		}, /effective period should be an array/)
+	})
+
 	test('should encode literal 1900-01-01 as a concrete date (not wildcard)', () => {
 		const buffer = utils.getBuffer()
 		const payload = [

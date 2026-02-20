@@ -275,6 +275,9 @@ export default class WriteProperty extends BacnetService {
 		buffer: EncodeBuffer,
 		values: any[],
 	) {
+		if (!Array.isArray(values)) {
+			throw new Error('Could not encode: effective period should be an array')
+		}
 		if (values.length !== 2) {
 			throw new Error(
 				'Could not encode: effective period should have a length of 2',
