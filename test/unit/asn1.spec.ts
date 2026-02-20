@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert'
 
 import * as baAsn1 from '../../src/lib/asn1'
+import { ApplicationTag } from '../../src/lib/enum'
 
 test.describe('bacnet - ASN1 layer', () => {
 	test.describe('decodeUnsigned', () => {
@@ -183,6 +184,83 @@ test.describe('bacnet - ASN1 layer', () => {
 				week: 0xff,
 				wday: 0xff,
 			})
+		})
+	})
+
+	test.describe('encode DATE/TIME compatibility', () => {
+		test('should encode DATE from unix timestamp in generic encoder', () => {
+			const buffer = { buffer: Buffer.alloc(16), offset: 0 }
+			const timestamp = new Date(2025, 0, 2).getTime()
+
+			baAsn1.bacappEncodeApplicationData(buffer, {
+				type: ApplicationTag.DATE,
+				value: timestamp,
+			} as any)
+
+			const decoded = baAsn1.bacappDecodeApplicationData(
+				buffer.buffer,
+				0,
+				buffer.offset,
+				0,
+				0,
+			)
+
+			assert.ok(decoded)
+			assert.equal(decoded.type, ApplicationTag.DATE)
+			assert.equal(decoded.value.getFullYear(), 2025)
+			assert.equal(decoded.value.getMonth(), 0)
+			assert.equal(decoded.value.getDate(), 2)
+		})
+
+		test('should encode DATE from raw BACnet bytes in generic encoder', () => {
+			const buffer = { buffer: Buffer.alloc(16), offset: 0 }
+
+			baAsn1.bacappEncodeApplicationData(buffer, {
+				type: ApplicationTag.DATE,
+				value: { year: 0xff, month: 14, day: 0xff, wday: 0xff },
+			} as any)
+
+			assert.deepStrictEqual(
+				buffer.buffer.slice(0, buffer.offset),
+				Buffer.from([0xa4, 0xff, 0x0e, 0xff, 0xff]),
+			)
+		})
+
+		test('should reject invalid raw DATE bytes in generic encoder', () => {
+			const buffer = { buffer: Buffer.alloc(16), offset: 0 }
+
+			assert.throws(
+				() =>
+					baAsn1.bacappEncodeApplicationData(buffer, {
+						type: ApplicationTag.DATE,
+						value: { year: 0xff, month: 42, day: 0xff, wday: 0xff },
+					} as any),
+				/invalid raw date month/,
+			)
+		})
+
+		test('should encode TIME from unix timestamp in generic encoder', () => {
+			const buffer = { buffer: Buffer.alloc(16), offset: 0 }
+			const timestamp = new Date(2025, 0, 2, 14, 30, 5, 120).getTime()
+
+			baAsn1.bacappEncodeApplicationData(buffer, {
+				type: ApplicationTag.TIME,
+				value: timestamp,
+			} as any)
+
+			const decoded = baAsn1.bacappDecodeApplicationData(
+				buffer.buffer,
+				0,
+				buffer.offset,
+				0,
+				0,
+			)
+
+			assert.ok(decoded)
+			assert.equal(decoded.type, ApplicationTag.TIME)
+			assert.equal(decoded.value.getHours(), 14)
+			assert.equal(decoded.value.getMinutes(), 30)
+			assert.equal(decoded.value.getSeconds(), 5)
 		})
 	})
 })

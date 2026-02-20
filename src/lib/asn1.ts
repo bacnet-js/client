@@ -28,6 +28,8 @@ import {
 	ContextCharacterString,
 	ReadAccessProperty,
 	ReadAccessError,
+	BACNetDateValue,
+	BACNetRawDate,
 } from './types'
 import {
 	CharacterStringEncoding,
@@ -453,12 +455,48 @@ export const encodeBacnetDate = (buffer: EncodeBuffer, value: Date): void => {
 	buffer.buffer[buffer.offset++] = value.getDay() === 0 ? 7 : value.getDay()
 }
 
+const validateRawDateByte = (
+	name: string,
+	value: number,
+	min: number,
+	max: number,
+): void => {
+	if (!Number.isInteger(value) || value < min || value > max) {
+		throw new Error(`invalid raw date ${name}: ${value}`)
+	}
+}
+
+const encodeRawBacnetDate = (buffer: EncodeBuffer, value: BACNetRawDate): void => {
+	validateRawDateByte('year', value.year, 0, 0xff)
+	if (value.month !== 0xff) {
+		validateRawDateByte('month', value.month, 1, 14)
+	}
+	if (value.day !== 0xff) {
+		validateRawDateByte('day', value.day, 1, 31)
+	}
+	if (value.wday !== 0xff) {
+		validateRawDateByte('wday', value.wday, 1, 7)
+	}
+
+	buffer.buffer[buffer.offset++] = value.year
+	buffer.buffer[buffer.offset++] = value.month
+	buffer.buffer[buffer.offset++] = value.day
+	buffer.buffer[buffer.offset++] = value.wday
+}
+
 export const encodeApplicationDate = (
 	buffer: EncodeBuffer,
-	value: Date,
+	value: BACNetDateValue,
 ): void => {
+	const normalized =
+		typeof value === 'number' ? new Date(value) : value
+
 	encodeTag(buffer, ApplicationTag.DATE, false, 4)
-	encodeBacnetDate(buffer, value)
+	if (normalized instanceof Date) {
+		encodeBacnetDate(buffer, normalized)
+	} else {
+		encodeRawBacnetDate(buffer, normalized)
+	}
 }
 
 const encodeBacnetTime = (buffer: EncodeBuffer, value: Date): void => {
@@ -470,10 +508,13 @@ const encodeBacnetTime = (buffer: EncodeBuffer, value: Date): void => {
 
 export const encodeApplicationTime = (
 	buffer: EncodeBuffer,
-	value: Date,
+	value: Date | number,
 ): void => {
+	const normalized =
+		typeof value === 'number' ? new Date(value) : value
+
 	encodeTag(buffer, ApplicationTag.TIME, false, 4)
-	encodeBacnetTime(buffer, value)
+	encodeBacnetTime(buffer, normalized)
 }
 
 const bacappEncodeDatetime = (buffer: EncodeBuffer, value: Date): void => {
