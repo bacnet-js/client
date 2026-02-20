@@ -472,7 +472,7 @@ const encodeRawBacnetDate = (buffer: EncodeBuffer, value: BACNetRawDate): void =
 		validateRawDateByte('month', value.month, 1, 14)
 	}
 	if (value.day !== 0xff) {
-		validateRawDateByte('day', value.day, 1, 31)
+		validateRawDateByte('day', value.day, 1, 34)
 	}
 	if (value.wday !== 0xff) {
 		validateRawDateByte('wday', value.wday, 1, 7)

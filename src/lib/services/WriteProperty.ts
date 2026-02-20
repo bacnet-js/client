@@ -55,7 +55,7 @@ export default class WriteProperty extends BacnetService {
 				WriteProperty.validateRawDateByte('month', value.month, 1, 14)
 			}
 			if (value.day !== 0xff) {
-				WriteProperty.validateRawDateByte('day', value.day, 1, 31)
+				WriteProperty.validateRawDateByte('day', value.day, 1, 34)
 			}
 			if (value.wday !== 0xff) {
 				WriteProperty.validateRawDateByte('wday', value.wday, 1, 7)
