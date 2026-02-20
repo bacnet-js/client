@@ -227,17 +227,17 @@ test.describe('bacnet - ASN1 layer', () => {
 		})
 
 		test('should encode DATE from raw BACnet day marker bytes in generic encoder', () => {
-			const buffer = { buffer: Buffer.alloc(16), offset: 0 }
-
-			baAsn1.bacappEncodeApplicationData(buffer, {
-				type: ApplicationTag.DATE,
-				value: { year: 0xff, month: 0xff, day: 32, wday: 0xff },
-			} as any)
-
-			assert.deepStrictEqual(
-				buffer.buffer.slice(0, buffer.offset),
-				Buffer.from([0xa4, 0xff, 0xff, 0x20, 0xff]),
-			)
+			for (const day of [32, 33, 34]) {
+				const buffer = { buffer: Buffer.alloc(16), offset: 0 }
+				baAsn1.bacappEncodeApplicationData(buffer, {
+					type: ApplicationTag.DATE,
+					value: { year: 0xff, month: 0xff, day, wday: 0xff },
+				} as any)
+				assert.deepStrictEqual(
+					buffer.buffer.slice(0, buffer.offset),
+					Buffer.from([0xa4, 0xff, 0xff, day, 0xff]),
+				)
+			}
 		})
 
 		test('should reject invalid raw DATE bytes in generic encoder', () => {
