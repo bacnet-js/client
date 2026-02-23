@@ -466,7 +466,10 @@ const validateRawDateByte = (
 	}
 }
 
-const encodeRawBacnetDate = (buffer: EncodeBuffer, value: BACNetRawDate): void => {
+const encodeRawBacnetDate = (
+	buffer: EncodeBuffer,
+	value: BACNetRawDate,
+): void => {
 	validateRawDateByte('year', value.year, 0, 0xff)
 	if (value.month !== 0xff) {
 		validateRawDateByte('month', value.month, 1, 14)
@@ -488,8 +491,7 @@ export const encodeApplicationDate = (
 	buffer: EncodeBuffer,
 	value: BACNetDateValue,
 ): void => {
-	const normalized =
-		typeof value === 'number' ? new Date(value) : value
+	const normalized = typeof value === 'number' ? new Date(value) : value
 
 	encodeTag(buffer, ApplicationTag.DATE, false, 4)
 	if (normalized instanceof Date) {

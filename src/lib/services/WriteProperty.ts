@@ -137,7 +137,10 @@ export default class WriteProperty extends BacnetService {
 		}
 		baAsn1.encodeOpeningTag(buffer, 1)
 		for (const row of value || []) {
-			WriteProperty.encodeDate(buffer, WriteProperty.extractDateInput(row))
+			WriteProperty.encodeDate(
+				buffer,
+				WriteProperty.extractDateInput(row),
+			)
 		}
 		baAsn1.encodeClosingTag(buffer, 1)
 	}
@@ -168,7 +171,9 @@ export default class WriteProperty extends BacnetService {
 		values: any[],
 	) {
 		if (!Array.isArray(values)) {
-			throw new Error('Could not encode: weekly schedule should be an array')
+			throw new Error(
+				'Could not encode: weekly schedule should be an array',
+			)
 		}
 		if (values.length !== 7) {
 			throw new Error(
@@ -276,7 +281,9 @@ export default class WriteProperty extends BacnetService {
 		values: any[],
 	) {
 		if (!Array.isArray(values)) {
-			throw new Error('Could not encode: effective period should be an array')
+			throw new Error(
+				'Could not encode: effective period should be an array',
+			)
 		}
 		if (values.length !== 2) {
 			throw new Error(
@@ -296,7 +303,9 @@ export default class WriteProperty extends BacnetService {
 		values: any[],
 	) {
 		if (!Array.isArray(values)) {
-			throw new Error('Could not encode: calendar date list should be an array')
+			throw new Error(
+				'Could not encode: calendar date list should be an array',
+			)
 		}
 		for (const entry of values) {
 			if (entry?.type === ApplicationTag.DATE) {
@@ -404,9 +413,9 @@ export default class WriteProperty extends BacnetService {
 			baAsn1.encodeContextUnsigned(buffer, 2, arrayIndex)
 		}
 		baAsn1.encodeOpeningTag(buffer, 3)
-			;(values as BACNetAppData[]).forEach((value) =>
-				baAsn1.bacappEncodeApplicationData(buffer, value),
-			)
+		;(values as BACNetAppData[]).forEach((value) =>
+			baAsn1.bacappEncodeApplicationData(buffer, value),
+		)
 		baAsn1.encodeClosingTag(buffer, 3)
 		if (priority !== ASN1_NO_PRIORITY) {
 			baAsn1.encodeContextUnsigned(buffer, 4, priority)

@@ -550,7 +550,10 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 							value: { type: ApplicationTag.NULL, value: null },
 						},
 					],
-					priority: { type: ApplicationTag.UNSIGNED_INTEGER, value: 16 },
+					priority: {
+						type: ApplicationTag.UNSIGNED_INTEGER,
+						value: 16,
+					},
 				},
 			]
 			assert.doesNotThrow(() => {
