@@ -139,6 +139,76 @@ test.describe('bacnet - ASN1 layer', () => {
 		})
 	})
 
+	test.describe('decodeDate', () => {
+		test('should decode full wildcard date to ZERO_DATE and preserve raw', () => {
+			const result = baAsn1.decodeDate(
+				Buffer.from([0xff, 0xff, 0xff, 0xff]),
+				0,
+			)
+			assert.equal(result.len, 4)
+			assert.equal(result.value.getTime(), baAsn1.ZERO_DATE.getTime())
+			assert.deepStrictEqual(result.raw, {
+				year: 0xff,
+				month: 0xff,
+				day: 0xff,
+				wday: 0xff,
+			})
+		})
+
+		test('should decode partial wildcard date to ZERO_DATE and preserve raw', () => {
+			const result = baAsn1.decodeDate(
+				Buffer.from([0xff, 0xff, 17, 0xff]),
+				0,
+			)
+			assert.equal(result.len, 4)
+			assert.equal(result.value.getTime(), baAsn1.ZERO_DATE.getTime())
+			assert.deepStrictEqual(result.raw, {
+				year: 0xff,
+				month: 0xff,
+				day: 17,
+				wday: 0xff,
+			})
+		})
+
+		test('should decode invalid concrete date to ZERO_DATE and preserve raw', () => {
+			const result = baAsn1.decodeDate(Buffer.from([124, 0, 32, 2]), 0)
+			assert.equal(result.len, 4)
+			assert.equal(result.value.getTime(), baAsn1.ZERO_DATE.getTime())
+			assert.deepStrictEqual(result.raw, {
+				year: 124,
+				month: 0,
+				day: 32,
+				wday: 2,
+			})
+		})
+
+		test('should decode non-normalized concrete date to ZERO_DATE', () => {
+			const result = baAsn1.decodeDate(Buffer.from([124, 2, 31, 5]), 0)
+			assert.equal(result.len, 4)
+			assert.equal(result.value.getTime(), baAsn1.ZERO_DATE.getTime())
+			assert.deepStrictEqual(result.raw, {
+				year: 124,
+				month: 2,
+				day: 31,
+				wday: 5,
+			})
+		})
+
+		test('should decode valid concrete date and preserve raw', () => {
+			const result = baAsn1.decodeDate(Buffer.from([124, 12, 31, 2]), 0)
+			assert.equal(result.len, 4)
+			assert.equal(result.value.getFullYear(), 2024)
+			assert.equal(result.value.getMonth(), 11)
+			assert.equal(result.value.getDate(), 31)
+			assert.deepStrictEqual(result.raw, {
+				year: 124,
+				month: 12,
+				day: 31,
+				wday: 2,
+			})
+		})
+	})
+
 	test.describe('decodeWeekNDay', () => {
 		test('should decode valid WEEKNDAY payload', () => {
 			const buffer = { buffer: Buffer.alloc(8), offset: 0 }

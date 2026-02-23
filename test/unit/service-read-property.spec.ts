@@ -18,6 +18,16 @@ const encodeRawDate = (buffer: any, value: Date) => {
 	buffer.buffer[buffer.offset++] = value.getDay() || 7
 }
 
+const encodeRawDateParts = (
+	buffer: any,
+	value: { year: number; month: number; day: number; wday: number },
+) => {
+	buffer.buffer[buffer.offset++] = value.year
+	buffer.buffer[buffer.offset++] = value.month
+	buffer.buffer[buffer.offset++] = value.day
+	buffer.buffer[buffer.offset++] = value.wday
+}
+
 const encodeReadPropertyAckHeader = (
 	buffer: any,
 	objectType: number,
@@ -185,6 +195,115 @@ test.describe('ReadPropertyAcknowledge schedule/calendar compatibility', () => {
 		assert.equal(weekdayEntry.date.value.wday, 1)
 	})
 
+	test('should preserve raw date for partial wildcard single date in exception schedule', () => {
+		const buffer = utils.getBuffer()
+		encodeReadPropertyAckHeader(
+			buffer,
+			ObjectType.SCHEDULE,
+			17,
+			PropertyIdentifier.EXCEPTION_SCHEDULE,
+		)
+
+		baAsn1.encodeOpeningTag(buffer, 0)
+		baAsn1.encodeTag(buffer, 0, true, 4)
+		encodeRawDateParts(buffer, {
+			year: 0xff,
+			month: 0xff,
+			day: 17,
+			wday: 0xff,
+		})
+		baAsn1.encodeClosingTag(buffer, 0)
+		baAsn1.encodeOpeningTag(buffer, 2)
+		baAsn1.bacappEncodeApplicationData(buffer, {
+			type: ApplicationTag.TIME,
+			value: new Date(2024, 0, 2, 6, 30, 0, 0),
+		})
+		baAsn1.bacappEncodeApplicationData(buffer, {
+			type: ApplicationTag.ENUMERATED,
+			value: 1,
+		})
+		baAsn1.encodeClosingTag(buffer, 2)
+		baAsn1.bacappEncodeApplicationData(buffer, {
+			type: ApplicationTag.UNSIGNED_INTEGER,
+			value: 8,
+		})
+		baAsn1.encodeClosingTag(buffer, 3)
+
+		const result = ReadProperty.decodeAcknowledge(
+			buffer.buffer,
+			0,
+			buffer.offset,
+		)
+		assert.ok(result)
+		const specialEvent = result.values[0]
+		const values = specialEvent.value as any[]
+		assert.equal(values.length, 1)
+		const date = values[0].date
+		assert.equal(date.type, ApplicationTag.DATE)
+		// Partial wildcard raw dates normalize to ZERO_DATE in value while raw preserves source bytes.
+		assert.equal(date.value.getTime(), baAsn1.ZERO_DATE.getTime())
+		assert.deepStrictEqual(date.raw, {
+			year: 0xff,
+			month: 0xff,
+			day: 17,
+			wday: 0xff,
+		})
+	})
+
+	test('should fall back to ZERO_DATE for invalid concrete raw date in exception schedule', () => {
+		const buffer = utils.getBuffer()
+		encodeReadPropertyAckHeader(
+			buffer,
+			ObjectType.SCHEDULE,
+			17,
+			PropertyIdentifier.EXCEPTION_SCHEDULE,
+		)
+
+		baAsn1.encodeOpeningTag(buffer, 0)
+		baAsn1.encodeTag(buffer, 0, true, 4)
+		encodeRawDateParts(buffer, {
+			year: 124,
+			month: 0,
+			day: 32,
+			wday: 2,
+		})
+		baAsn1.encodeClosingTag(buffer, 0)
+		baAsn1.encodeOpeningTag(buffer, 2)
+		baAsn1.bacappEncodeApplicationData(buffer, {
+			type: ApplicationTag.TIME,
+			value: new Date(2024, 0, 2, 6, 30, 0, 0),
+		})
+		baAsn1.bacappEncodeApplicationData(buffer, {
+			type: ApplicationTag.ENUMERATED,
+			value: 1,
+		})
+		baAsn1.encodeClosingTag(buffer, 2)
+		baAsn1.bacappEncodeApplicationData(buffer, {
+			type: ApplicationTag.UNSIGNED_INTEGER,
+			value: 8,
+		})
+		baAsn1.encodeClosingTag(buffer, 3)
+
+		const result = ReadProperty.decodeAcknowledge(
+			buffer.buffer,
+			0,
+			buffer.offset,
+		)
+		assert.ok(result)
+		const specialEvent = result.values[0]
+		const values = specialEvent.value as any[]
+		assert.equal(values.length, 1)
+		const date = values[0].date
+		assert.equal(date.type, ApplicationTag.DATE)
+		assert.equal(date.value.getTime(), baAsn1.ZERO_DATE.getTime())
+		assert.deepStrictEqual(date.raw, {
+			year: 124,
+			month: 0,
+			day: 32,
+			wday: 2,
+		})
+	})
+
 	test('should decode schedule effective period payload', () => {
 		const buffer = utils.getBuffer()
 		encodeReadPropertyAckHeader(
@@ -216,6 +335,59 @@ test.describe('ReadPropertyAcknowledge schedule/calendar compatibility', () => {
 		assert.equal(values.length, 2)
 		assert.ok(values[0].value instanceof Date)
 		assert.ok(values[1].value instanceof Date)
+	})
+
+	test('should preserve raw date range with partial wildcards in effective period', () => {
+		const buffer = utils.getBuffer()
+		encodeReadPropertyAckHeader(
+			buffer,
+			ObjectType.SCHEDULE,
+			17,
+			PropertyIdentifier.EFFECTIVE_PERIOD,
+		)
+
+		baAsn1.encodeTag(buffer, ApplicationTag.DATE, true, 4)
+		encodeRawDateParts(buffer, {
+			year: 121, // 2021
+			month: 0xff,
+			day: 28,
+			wday: 0xff,
+		})
+		baAsn1.encodeTag(buffer, ApplicationTag.DATE, true, 4)
+		encodeRawDateParts(buffer, {
+			year: 132, // 2032
+			month: 0xff,
+			day: 30,
+			wday: 0xff,
+		})
+		baAsn1.encodeClosingTag(buffer, 3)
+
+		const result = ReadProperty.decodeAcknowledge(
+			buffer.buffer,
+			0,
+			buffer.offset,
+		)
+		assert.ok(result)
+		const dateRange = result.values[0]
+		assert.equal(dateRange.type, ApplicationTag.DATERANGE)
+		const values = dateRange.value as any[]
+		assert.equal(values.length, 2)
+		// Partial wildcard raw dates (e.g. month=0xff) cannot be represented as concrete JS Date values.
+		// The decoder therefore normalizes value to ZERO_DATE while preserving original raw bytes.
+		assert.equal(values[0].value.getTime(), baAsn1.ZERO_DATE.getTime())
+		assert.equal(values[1].value.getTime(), baAsn1.ZERO_DATE.getTime())
+		assert.deepStrictEqual(values[0].raw, {
+			year: 121,
+			month: 0xff,
+			day: 28,
+			wday: 0xff,
+		})
+		assert.deepStrictEqual(values[1].raw, {
+			year: 132,
+			month: 0xff,
+			day: 30,
+			wday: 0xff,
+		})
 	})
 
 	test('should decode calendar date list payload', () => {
