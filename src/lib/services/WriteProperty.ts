@@ -11,8 +11,12 @@ import {
 import {
 	EncodeBuffer,
 	BACNetAppData,
+	BACNetCalendarDateListPayload,
+	BACNetEffectivePeriodPayload,
+	BACNetExceptionSchedulePayload,
 	BACNetObjectID,
 	BACNetPropertyID,
+	BACNetWeeklySchedulePayload,
 	WritePropertyRequest,
 	ApplicationData,
 	BACNetWritePropertyValues,
@@ -180,7 +184,7 @@ export default class WriteProperty extends BacnetService {
 
 	private static encodeWeeklySchedulePayload(
 		buffer: EncodeBuffer,
-		values: any[],
+		values: BACNetWeeklySchedulePayload,
 	) {
 		if (!Array.isArray(values)) {
 			throw new Error(
@@ -242,7 +246,7 @@ export default class WriteProperty extends BacnetService {
 
 	private static encodeExceptionSchedulePayload(
 		buffer: EncodeBuffer,
-		values: any[],
+		values: BACNetExceptionSchedulePayload,
 	) {
 		if (!Array.isArray(values)) {
 			throw new Error(
@@ -274,7 +278,12 @@ export default class WriteProperty extends BacnetService {
 			}
 			baAsn1.encodeClosingTag(buffer, 2)
 
-			const priorityValue = entry?.priority?.value ?? entry?.priority
+			const priority = entry?.priority as
+				| BACNetAppData<ApplicationTag.UNSIGNED_INTEGER, number>
+				| number
+				| undefined
+			const priorityValue =
+				typeof priority === 'number' ? priority : priority?.value
 			if (
 				!Number.isInteger(priorityValue) ||
 				priorityValue < ASN1_MIN_PRIORITY ||
@@ -290,7 +299,7 @@ export default class WriteProperty extends BacnetService {
 
 	private static encodeEffectivePeriodPayload(
 		buffer: EncodeBuffer,
-		values: any[],
+		values: BACNetEffectivePeriodPayload,
 	) {
 		if (!Array.isArray(values)) {
 			throw new Error(
@@ -312,7 +321,7 @@ export default class WriteProperty extends BacnetService {
 
 	private static encodeCalendarDateListPayload(
 		buffer: EncodeBuffer,
-		values: any[],
+		values: BACNetCalendarDateListPayload,
 	) {
 		if (!Array.isArray(values)) {
 			throw new Error(
@@ -362,7 +371,10 @@ export default class WriteProperty extends BacnetService {
 				propertyId,
 				arrayIndex,
 			)
-			WriteProperty.encodeWeeklySchedulePayload(buffer, values as any[])
+			WriteProperty.encodeWeeklySchedulePayload(
+				buffer,
+				values as BACNetWeeklySchedulePayload,
+			)
 			baAsn1.encodeClosingTag(buffer, 3)
 			WriteProperty.encodeWritePriority(buffer, priority)
 			return
@@ -380,7 +392,7 @@ export default class WriteProperty extends BacnetService {
 			)
 			WriteProperty.encodeExceptionSchedulePayload(
 				buffer,
-				values as any[],
+				values as BACNetExceptionSchedulePayload,
 			)
 			baAsn1.encodeClosingTag(buffer, 3)
 			WriteProperty.encodeWritePriority(buffer, priority)
@@ -397,7 +409,10 @@ export default class WriteProperty extends BacnetService {
 				propertyId,
 				arrayIndex,
 			)
-			WriteProperty.encodeEffectivePeriodPayload(buffer, values as any[])
+			WriteProperty.encodeEffectivePeriodPayload(
+				buffer,
+				values as BACNetEffectivePeriodPayload,
+			)
 			baAsn1.encodeClosingTag(buffer, 3)
 			WriteProperty.encodeWritePriority(buffer, priority)
 			return
@@ -413,7 +428,10 @@ export default class WriteProperty extends BacnetService {
 				propertyId,
 				arrayIndex,
 			)
-			WriteProperty.encodeCalendarDateListPayload(buffer, values as any[])
+			WriteProperty.encodeCalendarDateListPayload(
+				buffer,
+				values as BACNetCalendarDateListPayload,
+			)
 			baAsn1.encodeClosingTag(buffer, 3)
 			WriteProperty.encodeWritePriority(buffer, priority)
 			return
