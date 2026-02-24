@@ -100,6 +100,18 @@ export default class WriteProperty extends BacnetService {
 		return entry
 	}
 
+	private static normalizeTimeInput(time: any, errorPrefix: string): Date {
+		const timeValue = time?.value ?? time
+		if (timeValue == null) {
+			throw new Error(`${errorPrefix} time is required`)
+		}
+		const normalized = timeValue instanceof Date ? timeValue : new Date(timeValue)
+		if (Number.isNaN(normalized.getTime())) {
+			throw new Error(`${errorPrefix} time is invalid`)
+		}
+		return normalized
+	}
+
 	private static encodeDate(
 		buffer: EncodeBuffer,
 		value: any,
@@ -187,14 +199,14 @@ export default class WriteProperty extends BacnetService {
 				)
 			}
 			baAsn1.encodeOpeningTag(buffer, 0)
-			for (const slot of day) {
-				const timeValue = slot?.time?.value ?? slot?.time
+			for (const [slotIndex, slot] of day.entries()) {
+				const timeValue = WriteProperty.normalizeTimeInput(
+					slot?.time,
+					`Could not encode: weekly schedule day ${index} slot ${slotIndex}`,
+				)
 				baAsn1.bacappEncodeApplicationData(buffer, {
 					type: ApplicationTag.TIME,
-					value:
-						timeValue instanceof Date
-							? timeValue
-							: new Date(timeValue),
+					value: timeValue,
 				})
 				baAsn1.bacappEncodeApplicationData(buffer, slot.value)
 			}
@@ -249,14 +261,14 @@ export default class WriteProperty extends BacnetService {
 				)
 			}
 			baAsn1.encodeOpeningTag(buffer, 2)
-			for (const event of events || []) {
-				const timeValue = event?.time?.value ?? event?.time
+			for (const [eventIndex, event] of (events || []).entries()) {
+				const timeValue = WriteProperty.normalizeTimeInput(
+					event?.time,
+					`Could not encode: exception schedule entry ${index} event ${eventIndex}`,
+				)
 				baAsn1.bacappEncodeApplicationData(buffer, {
 					type: ApplicationTag.TIME,
-					value:
-						timeValue instanceof Date
-							? timeValue
-							: new Date(timeValue),
+					value: timeValue,
 				})
 				baAsn1.bacappEncodeApplicationData(buffer, event.value)
 			}

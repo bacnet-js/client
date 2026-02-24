@@ -320,6 +320,36 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		}, /should be an array/)
 	})
 
+	test('should reject weekly schedule payload with missing slot time', () => {
+		const buffer = utils.getBuffer()
+		const invalidWeekly = [
+			[
+				{
+					time: null,
+					value: { type: ApplicationTag.UNSIGNED_INTEGER, value: 2 },
+				},
+			],
+			[],
+			[],
+			[],
+			[],
+			[],
+			[],
+		]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.WEEKLY_SCHEDULE,
+				0xffffffff,
+				0,
+				invalidWeekly as any,
+			)
+		}, /weekly schedule day 0 slot 0 time is required/)
+	})
+
 	test('should reject weekly schedule payload when payload is not an array', () => {
 		const buffer = utils.getBuffer()
 
@@ -470,6 +500,37 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 				payload as any,
 			)
 		}, /events must be an array/)
+	})
+
+	test('should reject exception schedule payload with missing event time', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{
+				date: {
+					type: ApplicationTag.DATE,
+					value: new Date(2024, 11, 4),
+				},
+				events: [
+					{
+						time: null,
+						value: { type: ApplicationTag.REAL, value: 3 },
+					},
+				],
+				priority: { type: ApplicationTag.UNSIGNED_INTEGER, value: 16 },
+			},
+		]
+
+		assert.throws(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.EXCEPTION_SCHEDULE,
+				0xffffffff,
+				0,
+				payload as any,
+			)
+		}, /exception schedule entry 0 event 0 time is required/)
 	})
 
 	test('should reject exception schedule payload with invalid weeknday values', () => {
