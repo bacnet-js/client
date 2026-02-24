@@ -219,6 +219,11 @@ export type BACNetTimeAppData = Omit<
 	value: Date | number
 }
 
+export type BACNetEncodableAppData =
+	| BACNetAppData
+	| BACNetDateAppData
+	| BACNetTimeAppData
+
 export interface BACNetWeekNDayValue {
 	month: number
 	week: number

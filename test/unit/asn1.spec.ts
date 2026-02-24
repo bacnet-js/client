@@ -265,7 +265,7 @@ test.describe('bacnet - ASN1 layer', () => {
 			baAsn1.bacappEncodeApplicationData(buffer, {
 				type: ApplicationTag.DATE,
 				value: timestamp,
-			} as any)
+			})
 
 			const decoded = baAsn1.bacappDecodeApplicationData(
 				buffer.buffer,
@@ -288,7 +288,7 @@ test.describe('bacnet - ASN1 layer', () => {
 			baAsn1.bacappEncodeApplicationData(buffer, {
 				type: ApplicationTag.DATE,
 				value: { year: 0xff, month: 14, day: 0xff, wday: 0xff },
-			} as any)
+			})
 
 			assert.deepStrictEqual(
 				buffer.buffer.slice(0, buffer.offset),
@@ -302,7 +302,7 @@ test.describe('bacnet - ASN1 layer', () => {
 				baAsn1.bacappEncodeApplicationData(buffer, {
 					type: ApplicationTag.DATE,
 					value: { year: 0xff, month: 0xff, day, wday: 0xff },
-				} as any)
+				})
 				assert.deepStrictEqual(
 					buffer.buffer.slice(0, buffer.offset),
 					Buffer.from([0xa4, 0xff, 0xff, day, 0xff]),
@@ -318,7 +318,7 @@ test.describe('bacnet - ASN1 layer', () => {
 					baAsn1.bacappEncodeApplicationData(buffer, {
 						type: ApplicationTag.DATE,
 						value: { year: 0xff, month: 42, day: 0xff, wday: 0xff },
-					} as any),
+					}),
 				/invalid raw date month/,
 			)
 		})
@@ -330,7 +330,7 @@ test.describe('bacnet - ASN1 layer', () => {
 			baAsn1.bacappEncodeApplicationData(buffer, {
 				type: ApplicationTag.TIME,
 				value: timestamp,
-			} as any)
+			})
 
 			const decoded = baAsn1.bacappDecodeApplicationData(
 				buffer.buffer,
@@ -355,7 +355,7 @@ test.describe('bacnet - ASN1 layer', () => {
 					baAsn1.bacappEncodeApplicationData(buffer, {
 						type: ApplicationTag.TIME,
 						value: Number.POSITIVE_INFINITY,
-					} as any),
+					}),
 				/invalid timestamp/,
 			)
 		})

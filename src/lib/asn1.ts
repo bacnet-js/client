@@ -29,6 +29,7 @@ import {
 	ReadAccessProperty,
 	ReadAccessError,
 	BACNetDateValue,
+	BACNetEncodableAppData,
 	BACNetRawDate,
 } from './types'
 import {
@@ -653,7 +654,7 @@ const encodeCovSubscription = (
 
 export const bacappEncodeApplicationData = (
 	buffer: EncodeBuffer,
-	value: BACNetAppData,
+	value: BACNetEncodableAppData,
 ): void => {
 	if (value.value === null) {
 		value.type = ApplicationTag.NULL

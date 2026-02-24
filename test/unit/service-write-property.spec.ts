@@ -757,6 +757,26 @@ test.describe('WriteProperty schedule/calendar compatibility', () => {
 		}, /effective period should be an array/)
 	})
 
+	test('should honor effective period raw date value even when raw is 0', () => {
+		const buffer = utils.getBuffer()
+		const payload = [
+			{ type: ApplicationTag.DATE, raw: 0 },
+			{ type: ApplicationTag.DATE, raw: 24 * 60 * 60 * 1000 },
+		]
+
+		assert.doesNotThrow(() => {
+			WriteProperty.encode(
+				buffer,
+				ObjectType.SCHEDULE,
+				0,
+				PropertyIdentifier.EFFECTIVE_PERIOD,
+				0xffffffff,
+				0,
+				payload as any,
+			)
+		})
+	})
+
 	test('should encode literal 1900-01-01 as a concrete date (not wildcard)', () => {
 		const buffer = utils.getBuffer()
 		const payload = [

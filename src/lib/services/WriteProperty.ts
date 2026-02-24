@@ -12,10 +12,18 @@ import {
 	EncodeBuffer,
 	BACNetAppData,
 	BACNetCalendarDateListPayload,
+	BACNetDateAppData,
+	BACNetDateRangeAppData,
+	BACNetDateValue,
 	BACNetEffectivePeriodPayload,
 	BACNetExceptionSchedulePayload,
 	BACNetObjectID,
 	BACNetPropertyID,
+	BACNetRawDate,
+	BACNetSpecialEventEntry,
+	BACNetTimeAppData,
+	BACNetWeekNDayAppData,
+	BACNetWeekNDayValue,
 	BACNetWeeklySchedulePayload,
 	WritePropertyRequest,
 	ApplicationData,
@@ -45,15 +53,56 @@ export default class WriteProperty extends BacnetService {
 		WriteProperty.validateRawDateByte(name, value, min, max)
 	}
 
-	private static writeDateBytes(buffer: EncodeBuffer, value: any) {
-		if (
-			value &&
+	private static isRawDate(value: unknown): value is BACNetRawDate {
+		return (
+			value != null &&
 			typeof value === 'object' &&
 			'year' in value &&
 			'month' in value &&
 			'day' in value &&
 			'wday' in value
-		) {
+		)
+	}
+
+	private static hasRawDate(
+		value: unknown,
+	): value is { raw: BACNetDateValue } {
+		return value != null && typeof value === 'object' && 'raw' in value
+	}
+
+	private static isDateAppData(value: unknown): value is BACNetDateAppData {
+		return (
+			value != null &&
+			typeof value === 'object' &&
+			'type' in value &&
+			'value' in value &&
+			value.type === ApplicationTag.DATE
+		)
+	}
+
+	private static isTimeAppData(value: unknown): value is BACNetTimeAppData {
+		return (
+			value != null &&
+			typeof value === 'object' &&
+			'type' in value &&
+			'value' in value &&
+			value.type === ApplicationTag.TIME
+		)
+	}
+
+	private static isWeekNDayAppData(
+		value: BACNetWeekNDayAppData | BACNetWeekNDayValue,
+	): value is BACNetWeekNDayAppData {
+		return (
+			value != null &&
+			typeof value === 'object' &&
+			'type' in value &&
+			value.type === ApplicationTag.WEEKNDAY
+		)
+	}
+
+	private static writeDateBytes(buffer: EncodeBuffer, value: BACNetDateValue) {
+		if (WriteProperty.isRawDate(value)) {
 			WriteProperty.validateRawDateByte('year', value.year, 0, 255)
 			if (value.month !== 0xff) {
 				WriteProperty.validateRawDateByte('month', value.month, 1, 14)
@@ -94,18 +143,23 @@ export default class WriteProperty extends BacnetService {
 		buffer.buffer[buffer.offset++] = date.getDay() === 0 ? 7 : date.getDay()
 	}
 
-	private static extractDateInput(entry: any) {
-		if (entry && typeof entry === 'object' && 'raw' in entry && entry.raw) {
+	private static extractDateInput(
+		entry: BACNetDateAppData | BACNetDateValue | { raw: BACNetDateValue },
+	): BACNetDateValue {
+		if (WriteProperty.hasRawDate(entry)) {
 			return entry.raw
 		}
-		if (entry && typeof entry === 'object' && 'value' in entry) {
+		if (WriteProperty.isDateAppData(entry)) {
 			return entry.value
 		}
-		return entry
+		return entry as BACNetDateValue
 	}
 
-	private static normalizeTimeInput(time: any, errorPrefix: string): Date {
-		const timeValue = time?.value ?? time
+	private static normalizeTimeInput(
+		time: BACNetTimeAppData | Date | number | null | undefined,
+		errorPrefix: string,
+	): Date {
+		const timeValue = WriteProperty.isTimeAppData(time) ? time.value : time
 		if (timeValue == null) {
 			throw new Error(`${errorPrefix} time is required`)
 		}
@@ -118,7 +172,7 @@ export default class WriteProperty extends BacnetService {
 
 	private static encodeDate(
 		buffer: EncodeBuffer,
-		value: any,
+		value: BACNetDateValue,
 		contextTag?: number,
 	) {
 		if (contextTag !== undefined) {
@@ -129,8 +183,13 @@ export default class WriteProperty extends BacnetService {
 		WriteProperty.writeDateBytes(buffer, value)
 	}
 
-	private static encodeWeekNDayContext(buffer: EncodeBuffer, value: any) {
-		const weekNDay = value?.value ?? value
+	private static encodeWeekNDayContext(
+		buffer: EncodeBuffer,
+		value: BACNetWeekNDayAppData | BACNetWeekNDayValue,
+	) {
+		const weekNDay = WriteProperty.isWeekNDayAppData(value)
+			? value.value
+			: value
 		if (!weekNDay || typeof weekNDay !== 'object') {
 			throw new Error('Could not encode: invalid WEEKNDAY value')
 		}
@@ -145,14 +204,14 @@ export default class WriteProperty extends BacnetService {
 
 	private static encodeDateRangeContext(
 		buffer: EncodeBuffer,
-		value: any,
+		value: BACNetDateRangeAppData['value'],
 		invalidMessage: string,
 	) {
 		if (!Array.isArray(value) || value.length !== 2) {
 			throw new Error(invalidMessage)
 		}
 		baAsn1.encodeOpeningTag(buffer, 1)
-		for (const row of value || []) {
+		for (const row of value) {
 			WriteProperty.encodeDate(
 				buffer,
 				WriteProperty.extractDateInput(row),
@@ -218,8 +277,11 @@ export default class WriteProperty extends BacnetService {
 		}
 	}
 
-	private static encodeExceptionDate(buffer: EncodeBuffer, date: any) {
-		if (date?.type === ApplicationTag.DATE) {
+	private static encodeExceptionDate(
+		buffer: EncodeBuffer,
+		date: BACNetSpecialEventEntry['date'],
+	) {
+		if (date.type === ApplicationTag.DATE) {
 			WriteProperty.encodeDate(
 				buffer,
 				WriteProperty.extractDateInput(date),
@@ -227,7 +289,7 @@ export default class WriteProperty extends BacnetService {
 			)
 			return
 		}
-		if (date?.type === ApplicationTag.DATERANGE) {
+		if (date.type === ApplicationTag.DATERANGE) {
 			WriteProperty.encodeDateRangeContext(
 				buffer,
 				date.value,
@@ -235,7 +297,7 @@ export default class WriteProperty extends BacnetService {
 			)
 			return
 		}
-		if (date?.type === ApplicationTag.WEEKNDAY) {
+		if (date.type === ApplicationTag.WEEKNDAY) {
 			WriteProperty.encodeWeekNDayContext(buffer, date)
 			return
 		}
