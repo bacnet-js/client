@@ -90,10 +90,16 @@ export default class EventInformation extends BacnetService {
 			value.eventTimeStamps = []
 
 			for (let i = 0; i < 3; i++) {
-				decodedValue = baAsn1.decodeApplicationDate(buffer, offset + len)
+				decodedValue = baAsn1.decodeApplicationDate(
+					buffer,
+					offset + len,
+				)
 				len += decodedValue.len
 				const date = decodedValue.value
-				decodedValue = baAsn1.decodeApplicationTime(buffer, offset + len)
+				decodedValue = baAsn1.decodeApplicationTime(
+					buffer,
+					offset + len,
+				)
 				len += decodedValue.len
 				const time = decodedValue.value
 				value.eventTimeStamps[i] = new Date(

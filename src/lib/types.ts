@@ -194,6 +194,86 @@ export interface BACNetAppData<
 	encoding?: number
 }
 
+export interface BACNetRawDate {
+	year: number
+	month: number
+	day: number
+	wday: number
+}
+
+export type BACNetDateValue = Date | number | BACNetRawDate
+
+export type BACNetDateAppData = Omit<
+	BACNetAppData<ApplicationTag.DATE>,
+	'value'
+> & {
+	type: ApplicationTag.DATE
+	value: BACNetDateValue
+}
+
+export type BACNetTimeAppData = Omit<
+	BACNetAppData<ApplicationTag.TIME>,
+	'value'
+> & {
+	type: ApplicationTag.TIME
+	value: Date | number
+}
+
+export type BACNetEncodableAppData =
+	| BACNetAppData
+	| BACNetDateAppData
+	| BACNetTimeAppData
+
+export interface BACNetWeekNDayValue {
+	month: number
+	week: number
+	wday: number
+}
+
+export interface BACNetWeekNDayAppData
+	extends BACNetAppData<ApplicationTag.WEEKNDAY> {
+	value: BACNetWeekNDayValue
+}
+
+export interface BACNetDateRangeAppData
+	extends BACNetAppData<ApplicationTag.DATERANGE> {
+	value: [BACNetDateAppData, BACNetDateAppData]
+}
+
+export interface BACNetTimeValueEntry {
+	time: BACNetTimeAppData | Date | number
+	value: BACNetAppData
+}
+
+export type BACNetWeeklySchedulePayload = BACNetTimeValueEntry[][]
+
+export interface BACNetSpecialEventEntry {
+	date: BACNetDateAppData | BACNetDateRangeAppData | BACNetWeekNDayAppData
+	events: BACNetTimeValueEntry[]
+	priority: BACNetAppData<ApplicationTag.UNSIGNED_INTEGER> | number
+}
+
+export type BACNetExceptionSchedulePayload = BACNetSpecialEventEntry[]
+
+export type BACNetEffectivePeriodPayload = [
+	BACNetDateAppData | BACNetDateValue,
+	BACNetDateAppData | BACNetDateValue,
+]
+
+export type BACNetCalendarDateListEntry =
+	| BACNetDateAppData
+	| BACNetDateRangeAppData
+	| BACNetWeekNDayAppData
+
+export type BACNetCalendarDateListPayload = BACNetCalendarDateListEntry[]
+
+export type BACNetWritePropertyValues =
+	| BACNetAppData[]
+	| BACNetWeeklySchedulePayload
+	| BACNetExceptionSchedulePayload
+	| BACNetEffectivePeriodPayload
+	| BACNetCalendarDateListPayload
+
 /**
  * Map between BACnet Application Tags and TypeScript types.
  *
