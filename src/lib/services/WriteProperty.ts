@@ -53,10 +53,25 @@ export default class WriteProperty extends BacnetService {
 		WriteProperty.validateRawDateByte(name, value, min, max)
 	}
 
+	private static isObjectRecord(
+		value: unknown,
+	): value is Record<string, unknown> {
+		return value != null && typeof value === 'object'
+	}
+
+	private static hasTypeAndValue(
+		value: unknown,
+	): value is { type: unknown; value: unknown } {
+		return (
+			WriteProperty.isObjectRecord(value) &&
+			'type' in value &&
+			'value' in value
+		)
+	}
+
 	private static isRawDate(value: unknown): value is BACNetRawDate {
 		return (
-			value != null &&
-			typeof value === 'object' &&
+			WriteProperty.isObjectRecord(value) &&
 			'year' in value &&
 			'month' in value &&
 			'day' in value &&
@@ -67,25 +82,19 @@ export default class WriteProperty extends BacnetService {
 	private static hasRawDate(
 		value: unknown,
 	): value is { raw: BACNetDateValue } {
-		return value != null && typeof value === 'object' && 'raw' in value
+		return WriteProperty.isObjectRecord(value) && 'raw' in value
 	}
 
 	private static isDateAppData(value: unknown): value is BACNetDateAppData {
 		return (
-			value != null &&
-			typeof value === 'object' &&
-			'type' in value &&
-			'value' in value &&
+			WriteProperty.hasTypeAndValue(value) &&
 			value.type === ApplicationTag.DATE
 		)
 	}
 
 	private static isTimeAppData(value: unknown): value is BACNetTimeAppData {
 		return (
-			value != null &&
-			typeof value === 'object' &&
-			'type' in value &&
-			'value' in value &&
+			WriteProperty.hasTypeAndValue(value) &&
 			value.type === ApplicationTag.TIME
 		)
 	}
@@ -94,9 +103,7 @@ export default class WriteProperty extends BacnetService {
 		value: BACNetWeekNDayAppData | BACNetWeekNDayValue,
 	): value is BACNetWeekNDayAppData {
 		return (
-			value != null &&
-			typeof value === 'object' &&
-			'type' in value &&
+			WriteProperty.hasTypeAndValue(value) &&
 			value.type === ApplicationTag.WEEKNDAY
 		)
 	}
@@ -190,7 +197,7 @@ export default class WriteProperty extends BacnetService {
 		const weekNDay = WriteProperty.isWeekNDayAppData(value)
 			? value.value
 			: value
-		if (!weekNDay || typeof weekNDay !== 'object') {
+		if (!WriteProperty.isObjectRecord(weekNDay)) {
 			throw new Error('Could not encode: invalid WEEKNDAY value')
 		}
 		WriteProperty.validateWeekNDayByte('month', weekNDay.month, 1, 14)
