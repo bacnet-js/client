@@ -4,7 +4,7 @@
  * 2) Send Who-Is using BVLC Distribute-Broadcast-To-Network (0x09)
  *
  * Usage:
- *   npx ts-node examples/discover-devices-via-bbmd.ts <bbmd-ip[:port]> [ttl-seconds]
+ *   npx ts-node examples/discover-devices-via-bbmd.ts <bbmd-ip:port> [ttl-seconds]
  */
 
 import Bacnet from '../src'
@@ -14,7 +14,7 @@ const ttlSeconds = Number(process.argv[3] || 60)
 const localPort = Number(process.env.BACNET_PORT || 47809)
 
 if (!bbmdAddress) {
-	console.error('Missing BBMD address. Usage: <bbmd-ip[:port]> [ttl-seconds]')
+	console.error('Missing BBMD address. Usage: <bbmd-ip:port> [ttl-seconds]')
 	process.exit(1)
 }
 

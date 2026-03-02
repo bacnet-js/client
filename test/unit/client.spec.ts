@@ -276,6 +276,29 @@ test.describe('bacnet - client', () => {
 		)
 	})
 
+	test('registerForeignDevice should reject receiver address without port', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		client._settings = { apduTimeout: 25 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = () => {}
+
+		await assert.rejects(
+			client.registerForeignDevice({ address: '127.0.0.1' }, 60),
+			/Invalid receiver\.address/,
+		)
+	})
+
 	test('registerForeignDevice should dedupe parallel calls for the same target', async () => {
 		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
 			_settings: { apduTimeout: number }
@@ -387,6 +410,50 @@ test.describe('bacnet - client', () => {
 
 		await assert.doesNotReject(first)
 		await assert.rejects(second, /ERR_TIMEOUT/)
+		assert.strictEqual(sends, 2)
+	})
+
+	test('registerForeignDevice should retry queued TTL request if prior attempt fails', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		let sends = 0
+		client._settings = { apduTimeout: 30 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = (_buffer, receiver) => {
+			sends += 1
+			if (sends === 2) {
+				setImmediate(() => {
+					client.emit('bvlcResult', {
+						header: { sender: { address: receiver?.address } },
+						payload: {
+							resultCode: BvlcResultFormat.SUCCESSFUL_COMPLETION,
+						},
+					})
+				})
+			}
+		}
+
+		const first = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			60,
+		)
+		const second = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			120,
+		)
+
+		await assert.rejects(first, /ERR_TIMEOUT/)
+		await assert.doesNotReject(second)
 		assert.strictEqual(sends, 2)
 	})
 

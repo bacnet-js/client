@@ -267,7 +267,10 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			return null
 		}
 
-		if (parts.length === 1) return `${host}:${DEFAULT_BACNET_PORT}`
+		if (parts.length === 1) {
+			if (strictPort) throw new Error(`Invalid receiver.address "${value}"`)
+			return `${host}:${DEFAULT_BACNET_PORT}`
+		}
 
 		const portRaw = parts[1]?.trim()
 		if (!portRaw) {
@@ -1006,7 +1009,12 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			// BVLC-Result has no invoke-id, so parallel registrations to the same BBMD
 			// must be serialized to avoid correlating one response to multiple requests.
 			if (pending.ttl === ttl) return pending.promise
-			await pending.promise
+			try {
+				await pending.promise
+			} catch {
+				// If the earlier registration failed, still allow a new attempt
+				// with the requested TTL instead of propagating stale failure.
+			}
 			return this.registerForeignDevice(receiver, ttl)
 		}
 
