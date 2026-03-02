@@ -44,6 +44,11 @@ export interface BACNetAddress {
 	 * The BACnet address `<ip>:<port>`.
 	 */
 	address?: string
+	/**
+	 * When true, wraps outgoing NPDU in BVLC Distribute-Broadcast-To-Network (0x09)
+	 * and unicasts it to `address` (typically a BBMD).
+	 */
+	distributeBroadcastToNetwork?: boolean
 }
 
 /**

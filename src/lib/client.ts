@@ -919,6 +919,25 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	}
 
 	/**
+	 * Sends Who-Is through a BBMD using BVLC Distribute-Broadcast-To-Network (0x09).
+	 * Requires prior foreign-device registration in the same BBMD.
+	 */
+	public whoIsThroughBBMD(bbmd: BACNetAddress, options?: WhoIsOptions): void {
+		if (!bbmd?.address) {
+			throw new Error(
+				'whoIsThroughBBMD requires bbmd.address (bbmd_ip:port)',
+			)
+		}
+		this.whoIs(
+			{
+				...bbmd,
+				distributeBroadcastToNetwork: true,
+			},
+			options,
+		)
+	}
+
+	/**
 	 * The timeSync command sets the time of a target device.
 	 */
 	timeSync(receiver: BACNetAddress, dateTime: Date): void {
@@ -978,8 +997,9 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				`Invalid receiver.address "${String(receiver.address)}"`,
 			)
 		}
+		const registrationKey = `${expectedAddress}:${ttl}`
 		const pendingRegistrations = this._getPendingForeignDeviceRegistrations()
-		const pending = pendingRegistrations.get(expectedAddress)
+		const pending = pendingRegistrations.get(registrationKey)
 		if (pending) return pending
 
 		const registrationPromise = new Promise<void>((resolve, reject) => {
@@ -991,12 +1011,6 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			const cleanup = () => {
 				clearTimeout(timeout)
 				this.off('bvlcResult', onResult)
-				this.off('error', onError)
-			}
-
-			const onError = (err: Error) => {
-				cleanup()
-				reject(err)
 			}
 
 			const onResult = (content: {
@@ -1020,15 +1034,14 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			}
 
 			this.on('bvlcResult', onResult)
-			this.on('error', onError)
 			this._send(buffer, receiver)
 		})
-		pendingRegistrations.set(expectedAddress, registrationPromise)
+		pendingRegistrations.set(registrationKey, registrationPromise)
 		try {
 			await registrationPromise
 		} finally {
-			if (pendingRegistrations.get(expectedAddress) === registrationPromise) {
-				pendingRegistrations.delete(expectedAddress)
+			if (pendingRegistrations.get(registrationKey) === registrationPromise) {
+				pendingRegistrations.delete(registrationKey)
 			}
 		}
 	}
@@ -2335,6 +2348,13 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				BvlcResultPurpose.FORWARDED_NPDU,
 				buffer.offset,
 				receiver.forwardedFrom,
+			)
+		} else if (receiver && receiver.distributeBroadcastToNetwork) {
+			// Foreign device broadcast distribution through BBMD (BVLC 0x09)
+			baBvlc.encode(
+				buffer.buffer,
+				BvlcResultPurpose.DISTRIBUTE_BROADCAST_TO_NETWORK,
+				buffer.offset,
 			)
 		} else if (receiver && receiver.address) {
 			// Specific address, unicast
