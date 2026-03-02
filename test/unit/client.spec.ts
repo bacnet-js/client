@@ -5,7 +5,10 @@ import BACnetClient from '../../src/lib/client'
 import * as baNpdu from '../../src/lib/npdu'
 import * as baApdu from '../../src/lib/apdu'
 import * as baBvlc from '../../src/lib/bvlc'
-import { GetEventInformation, RegisterForeignDevice } from '../../src/lib/services'
+import {
+	GetEventInformation,
+	RegisterForeignDevice,
+} from '../../src/lib/services'
 import {
 	BvlcResultFormat,
 	BvlcResultPurpose,
@@ -194,7 +197,10 @@ test.describe('bacnet - client', () => {
 		}
 
 		await assert.doesNotReject(async () => {
-			await client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60)
+			await client.registerForeignDevice(
+				{ address: '127.0.0.1:47808' },
+				60,
+			)
 		})
 	})
 
@@ -218,7 +224,8 @@ test.describe('bacnet - client', () => {
 				client.emit('bvlcResult', {
 					header: { sender: { address: receiver?.address } },
 					payload: {
-						resultCode: BvlcResultFormat.REGISTER_FOREIGN_DEVICE_NAK,
+						resultCode:
+							BvlcResultFormat.REGISTER_FOREIGN_DEVICE_NAK,
 					},
 				})
 			})
@@ -486,7 +493,10 @@ test.describe('bacnet - client', () => {
 		}
 
 		await assert.doesNotReject(async () => {
-			await client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60)
+			await client.registerForeignDevice(
+				{ address: '127.0.0.1:47808' },
+				60,
+			)
 		})
 	})
 

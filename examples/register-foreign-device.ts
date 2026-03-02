@@ -16,7 +16,9 @@ const localPort = Number(process.env.BACNET_PORT || 47809)
 const renewRatio = Number(process.env.FDR_RENEW_RATIO || 0.8)
 
 if (!bbmdAddress) {
-	console.error('Missing BBMD address. Pass <bbmd-ip:port> or set BBMD_ADDRESS.')
+	console.error(
+		'Missing BBMD address. Pass <bbmd-ip:port> or set BBMD_ADDRESS.',
+	)
 	process.exit(1)
 }
 
@@ -27,7 +29,11 @@ if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0 || ttlSeconds > 0xffff) {
 
 const renewDelayMs = Math.max(
 	1000,
-	Math.floor(ttlSeconds * (renewRatio > 0 && renewRatio < 1 ? renewRatio : 0.8) * 1000),
+	Math.floor(
+		ttlSeconds *
+			(renewRatio > 0 && renewRatio < 1 ? renewRatio : 0.8) *
+			1000,
+	),
 )
 
 const bacnetClient = new Bacnet({
@@ -68,7 +74,9 @@ const register = async () => {
 		clearRenewTimer()
 		renewTimer = setTimeout(() => {
 			register().catch((err) =>
-				console.error(`FDR renew failed: ${String((err as Error)?.message || err)}`),
+				console.error(
+					`FDR renew failed: ${String((err as Error)?.message || err)}`,
+				),
 			)
 		}, renewDelayMs)
 	} catch (err) {

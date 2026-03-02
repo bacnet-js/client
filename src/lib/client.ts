@@ -251,38 +251,45 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		}
 	}
 
-	private _normalizeAddress(address?: string, strictPort = false): string | null {
+	private _normalizeAddress(
+		address?: string,
+		strictPort = false,
+	): string | null {
 		const value = String(address ?? '').trim()
 		if (!value) return null
 
 		const parts = value.split(':')
 		if (parts.length > 2) {
-			if (strictPort) throw new Error(`Invalid receiver.address "${value}"`)
+			if (strictPort)
+				throw new Error(`Invalid receiver.address "${value}"`)
 			return null
 		}
 
 		const host = parts[0]?.trim()
 		if (!host) {
-			if (strictPort) throw new Error(`Invalid receiver.address "${value}"`)
+			if (strictPort)
+				throw new Error(`Invalid receiver.address "${value}"`)
 			return null
 		}
 
 		if (parts.length === 1) {
-			if (strictPort) throw new Error(`Invalid receiver.address "${value}"`)
+			if (strictPort)
+				throw new Error(`Invalid receiver.address "${value}"`)
 			return `${host}:${DEFAULT_BACNET_PORT}`
 		}
 
 		const portRaw = parts[1]?.trim()
 		if (!portRaw) {
-			if (strictPort) throw new Error(`Invalid receiver.address "${value}"`)
+			if (strictPort)
+				throw new Error(`Invalid receiver.address "${value}"`)
 			return null
 		}
 
 		const port = Number(portRaw)
-		const isValidPort =
-			Number.isInteger(port) && port >= 1 && port <= 65535
+		const isValidPort = Number.isInteger(port) && port >= 1 && port <= 65535
 		if (!isValidPort) {
-			if (strictPort) throw new Error(`Invalid receiver.address "${value}"`)
+			if (strictPort)
+				throw new Error(`Invalid receiver.address "${value}"`)
 			return null
 		}
 
@@ -986,7 +993,9 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			)
 		}
 		if (!Number.isInteger(ttl) || ttl <= 0 || ttl > 0xffff) {
-			throw new Error('registerForeignDevice ttl must be 1..65535 seconds')
+			throw new Error(
+				'registerForeignDevice ttl must be 1..65535 seconds',
+			)
 		}
 
 		const buffer = this._getApduBuffer(receiver)
@@ -1003,7 +1012,8 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				`Invalid receiver.address "${String(receiver.address)}"`,
 			)
 		}
-		const pendingRegistrations = this._getPendingForeignDeviceRegistrations()
+		const pendingRegistrations =
+			this._getPendingForeignDeviceRegistrations()
 		const pending = pendingRegistrations.get(expectedAddress)
 		if (pending) {
 			// BVLC-Result has no invoke-id, so parallel registrations to the same BBMD
@@ -1033,7 +1043,10 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				header?: { sender?: { address?: string } }
 				payload?: { resultCode?: number }
 			}) => {
-				if (this._normalizeAddress(content?.header?.sender?.address) !== expectedAddress)
+				if (
+					this._normalizeAddress(content?.header?.sender?.address) !==
+					expectedAddress
+				)
 					return
 				const resultCode = Number(content?.payload?.resultCode)
 				if (resultCode === BvlcResultFormat.SUCCESSFUL_COMPLETION) {
