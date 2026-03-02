@@ -870,6 +870,10 @@ export interface RegisterForeignDevicePayload extends BasicServicePayload {
 	ttl: number
 }
 
+export interface BvlcResultPayload extends BasicServicePayload {
+	resultCode: number
+}
+
 export interface WhoHasPayload extends BasicServicePayload {
 	lowLimit?: number
 	highLimit?: number

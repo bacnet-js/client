@@ -105,6 +105,7 @@ import {
 	PDU_TYPE_MASK,
 	ErrorClass,
 	ErrorCode,
+	BvlcResultFormat,
 	NpduControlBit,
 	MaxSegmentsAccepted,
 	MaxApduLengthAccepted,
@@ -123,6 +124,7 @@ const trace = debugLib('bacnet:client:trace')
 const ALL_INTERFACES = '0.0.0.0'
 const LOCALHOST_INTERFACES_IPV4 = '127.0.0.1'
 const BROADCAST_ADDRESS = '255.255.255.255'
+const DEFAULT_BACNET_PORT = 47808
 const DEFAULT_HOP_COUNT = 0xff
 const BVLC_HEADER_LENGTH = 4
 const BVLC_FWD_HEADER_LENGTH = 10 // FORWARDED_NPDU
@@ -184,6 +186,8 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 
 	private _transport: Transport
 
+	private _pendingForeignDeviceRegistrations?: Map<string, Promise<void>>
+
 	private _invokeCounter = 1
 
 	private _requestManager: RequestManager
@@ -242,6 +246,48 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			buffer: Buffer.alloc(this._transport.getMaxPayload()),
 			offset: isForwarded ? BVLC_FWD_HEADER_LENGTH : BVLC_HEADER_LENGTH,
 		}
+	}
+
+	private _normalizeAddress(address?: string, strictPort = false): string | null {
+		const value = String(address ?? '').trim()
+		if (!value) return null
+
+		const parts = value.split(':')
+		if (parts.length > 2) {
+			if (strictPort) throw new Error(`Invalid receiver.address "${value}"`)
+			return null
+		}
+
+		const host = parts[0]?.trim()
+		if (!host) {
+			if (strictPort) throw new Error(`Invalid receiver.address "${value}"`)
+			return null
+		}
+
+		if (parts.length === 1) return `${host}:${DEFAULT_BACNET_PORT}`
+
+		const portRaw = parts[1]?.trim()
+		if (!portRaw) {
+			if (strictPort) throw new Error(`Invalid receiver.address "${value}"`)
+			return null
+		}
+
+		const port = Number(portRaw)
+		const isValidPort =
+			Number.isInteger(port) && port >= 1 && port <= 65535
+		if (!isValidPort) {
+			if (strictPort) throw new Error(`Invalid receiver.address "${value}"`)
+			return null
+		}
+
+		return `${host}:${port}`
+	}
+
+	private _getPendingForeignDeviceRegistrations() {
+		if (!this._pendingForeignDeviceRegistrations) {
+			this._pendingForeignDeviceRegistrations = new Map()
+		}
+		return this._pendingForeignDeviceRegistrations
 	}
 
 	private _processError(
@@ -741,6 +787,15 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		}
 		// Check BVLC function
 		switch (result.func) {
+			case BvlcResultPurpose.BVLC_RESULT: {
+				const bvlcResult = baApdu.decodeResult(buffer, result.len)
+				this.emit('bvlcResult', {
+					header,
+					payload: bvlcResult,
+				})
+				break
+			}
+
 			case BvlcResultPurpose.ORIGINAL_UNICAST_NPDU:
 			case BvlcResultPurpose.ORIGINAL_BROADCAST_NPDU:
 				this._handleNpdu(
@@ -763,7 +818,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				)
 				break
 
-			case BvlcResultPurpose.REGISTER_FOREIGN_DEVICE:
+			case BvlcResultPurpose.REGISTER_FOREIGN_DEVICE: {
 				const decodeResult = RegisterForeignDevice.decode(
 					buffer,
 					result.len,
@@ -779,6 +834,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 					payload: decodeResult,
 				})
 				break
+			}
 
 			case BvlcResultPurpose.DISTRIBUTE_BROADCAST_TO_NETWORK:
 				this._handleNpdu(
@@ -890,6 +946,91 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		)
 		TimeSync.encode(buffer, dateTime)
 		this.sendBvlc(receiver, buffer)
+	}
+
+	/**
+	 * Registers this client as a foreign device in a BBMD.
+	 */
+	async registerForeignDevice(
+		receiver: BACNetAddress,
+		ttl: number,
+	): Promise<void> {
+		if (!receiver?.address) {
+			throw new Error(
+				'registerForeignDevice requires receiver.address (bbmd_ip:port)',
+			)
+		}
+		if (!Number.isInteger(ttl) || ttl <= 0 || ttl > 0xffff) {
+			throw new Error('registerForeignDevice ttl must be 1..65535 seconds')
+		}
+
+		const buffer = this._getApduBuffer(receiver)
+		RegisterForeignDevice.encode(buffer, ttl)
+		baBvlc.encode(
+			buffer.buffer,
+			BvlcResultPurpose.REGISTER_FOREIGN_DEVICE,
+			buffer.offset,
+		)
+
+		const expectedAddress = this._normalizeAddress(receiver.address, true)
+		if (!expectedAddress) {
+			throw new Error(
+				`Invalid receiver.address "${String(receiver.address)}"`,
+			)
+		}
+		const pendingRegistrations = this._getPendingForeignDeviceRegistrations()
+		const pending = pendingRegistrations.get(expectedAddress)
+		if (pending) return pending
+
+		const registrationPromise = new Promise<void>((resolve, reject) => {
+			const timeout = setTimeout(() => {
+				cleanup()
+				reject(new Error('ERR_TIMEOUT'))
+			}, this._settings.apduTimeout || 3000)
+
+			const cleanup = () => {
+				clearTimeout(timeout)
+				this.off('bvlcResult', onResult)
+				this.off('error', onError)
+			}
+
+			const onError = (err: Error) => {
+				cleanup()
+				reject(err)
+			}
+
+			const onResult = (content: {
+				header?: { sender?: { address?: string } }
+				payload?: { resultCode?: number }
+			}) => {
+				if (this._normalizeAddress(content?.header?.sender?.address) !== expectedAddress)
+					return
+				const resultCode = Number(content?.payload?.resultCode)
+				if (resultCode === BvlcResultFormat.SUCCESSFUL_COMPLETION) {
+					cleanup()
+					resolve()
+					return
+				}
+				cleanup()
+				reject(
+					new Error(
+						`BacnetError - Class:${ErrorClass.COMMUNICATION} - Code:${ErrorCode.REGISTER_FOREIGN_DEVICE_FAILED} - Result:${resultCode}`,
+					),
+				)
+			}
+
+			this.on('bvlcResult', onResult)
+			this.on('error', onError)
+			this._send(buffer, receiver)
+		})
+		pendingRegistrations.set(expectedAddress, registrationPromise)
+		try {
+			await registrationPromise
+		} finally {
+			if (pendingRegistrations.get(expectedAddress) === registrationPromise) {
+				pendingRegistrations.delete(expectedAddress)
+			}
+		}
 	}
 
 	/**
