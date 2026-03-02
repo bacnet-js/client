@@ -346,6 +346,50 @@ test.describe('bacnet - client', () => {
 		assert.strictEqual(sends, 2)
 	})
 
+	test('registerForeignDevice should not resolve two different TTL requests from a single BVLC result', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		let sends = 0
+		client._settings = { apduTimeout: 30 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = (_buffer, receiver) => {
+			sends += 1
+			if (sends === 1) {
+				setImmediate(() => {
+					client.emit('bvlcResult', {
+						header: { sender: { address: receiver?.address } },
+						payload: {
+							resultCode: BvlcResultFormat.SUCCESSFUL_COMPLETION,
+						},
+					})
+				})
+			}
+		}
+
+		const first = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			60,
+		)
+		const second = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			120,
+		)
+
+		await assert.doesNotReject(first)
+		await assert.rejects(second, /ERR_TIMEOUT/)
+		assert.strictEqual(sends, 2)
+	})
+
 	test('registerForeignDevice should ignore unrelated error events', async () => {
 		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
 			_settings: { apduTimeout: number }

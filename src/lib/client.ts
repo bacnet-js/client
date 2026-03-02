@@ -186,7 +186,10 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 
 	private _transport: Transport
 
-	private _pendingForeignDeviceRegistrations?: Map<string, Promise<void>>
+	private _pendingForeignDeviceRegistrations?: Map<
+		string,
+		{ ttl: number; promise: Promise<void> }
+	>
 
 	private _invokeCounter = 1
 
@@ -997,10 +1000,15 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				`Invalid receiver.address "${String(receiver.address)}"`,
 			)
 		}
-		const registrationKey = `${expectedAddress}:${ttl}`
 		const pendingRegistrations = this._getPendingForeignDeviceRegistrations()
-		const pending = pendingRegistrations.get(registrationKey)
-		if (pending) return pending
+		const pending = pendingRegistrations.get(expectedAddress)
+		if (pending) {
+			// BVLC-Result has no invoke-id, so parallel registrations to the same BBMD
+			// must be serialized to avoid correlating one response to multiple requests.
+			if (pending.ttl === ttl) return pending.promise
+			await pending.promise
+			return this.registerForeignDevice(receiver, ttl)
+		}
 
 		const registrationPromise = new Promise<void>((resolve, reject) => {
 			const timeout = setTimeout(() => {
@@ -1036,12 +1044,16 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			this.on('bvlcResult', onResult)
 			this._send(buffer, receiver)
 		})
-		pendingRegistrations.set(registrationKey, registrationPromise)
+		pendingRegistrations.set(expectedAddress, {
+			ttl,
+			promise: registrationPromise,
+		})
 		try {
 			await registrationPromise
 		} finally {
-			if (pendingRegistrations.get(registrationKey) === registrationPromise) {
-				pendingRegistrations.delete(registrationKey)
+			const current = pendingRegistrations.get(expectedAddress)
+			if (current?.promise === registrationPromise) {
+				pendingRegistrations.delete(expectedAddress)
 			}
 		}
 	}
