@@ -74,7 +74,7 @@ export default class IAm extends BacnetService {
 		if (result.value > 0xffff) return undefined
 		const vendorId = result.value
 		return {
-			len: offset - orgOffset,
+			len: apduLen + (offset - orgOffset),
 			deviceId,
 			maxApdu,
 			segmentation,

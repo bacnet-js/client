@@ -36,6 +36,7 @@ client.on('iAm', (device: any) => {
 
 client.on('listening', async () => {
 	try {
+		console.log(`Listening on UDP ${localPort}`)
 		await client.registerForeignDevice({ address: bbmdAddress }, ttlSeconds)
 		console.log(`FDR success on ${bbmdAddress} (ttl=${ttlSeconds}s)`)
 		client.whoIsThroughBBMD({ address: bbmdAddress })

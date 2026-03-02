@@ -9,6 +9,7 @@ test.describe('bacnet - Services layer Iam unit', () => {
 		const buffer = utils.getBuffer()
 		IAm.encode(buffer, 47, 1, 1, 7)
 		const result = IAm.decode(buffer.buffer, 0)
+		assert.strictEqual(result.len, buffer.offset)
 		delete result.len
 		assert.deepStrictEqual(result, {
 			deviceId: 47,

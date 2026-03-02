@@ -71,6 +71,23 @@ test.describe('bacnet - BVLC layer', () => {
 		assert.strictEqual(result, undefined)
 	})
 
+	test('should decode even when UDP payload contains trailing bytes', () => {
+		const packet = Buffer.alloc(6)
+		packet[0] = 0x81
+		packet[1] = 0x0a
+		packet[2] = 0x00
+		packet[3] = 0x04
+		packet[4] = 0xaa
+		packet[5] = 0xbb
+		const result = baBvlc.decode(packet, 0)
+		assert.deepStrictEqual(result, {
+			len: 4,
+			func: 10,
+			msgLength: 4,
+			originatingIP: null,
+		})
+	})
+
 	test('should fail if unsuported function', () => {
 		const buffer = utils.getBuffer()
 		baBvlc.encode(buffer.buffer, 99, 1482)
