@@ -17,6 +17,7 @@ import ServicesMap, {
 	DeleteObject,
 	DeviceCommunicationControl,
 	EventInformation,
+	GetEventInformation,
 	EventNotifyData,
 	GetEnrollmentSummary,
 	IAm,
@@ -45,6 +46,7 @@ import {
 	BACNetObjectID,
 	BACNetPropertyID,
 	BACNetAppData,
+	BACNetWritePropertyValues,
 	BACNetTimestamp,
 	TransportSettings,
 	ClientOptions,
@@ -362,7 +364,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		if (!moreFollows) {
 			const apduBuffer = Buffer.concat(this._segmentStore)
 			this._segmentStore = []
-			msg.type &= ~PduConReqBit.SEGMENTED_MESSAGE
+			msg.header.apduType &= ~PduConReqBit.SEGMENTED_MESSAGE
 			this._handlePdu(apduBuffer, 0, apduBuffer.length, msg.header)
 		}
 	}
@@ -590,7 +592,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 								| ConfirmedServiceRequestMessage
 								| ComplexAckMessage
 							),
-						true,
+						false,
 						buffer,
 						offset + msg.len,
 						length - msg.len,
@@ -974,7 +976,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		receiver: BACNetAddress,
 		objectId: BACNetObjectID,
 		propertyId: number,
-		values: BACNetAppData[],
+		values: BACNetWritePropertyValues,
 		options: WritePropertyOptions,
 	): Promise<void> {
 		const settings: WritePropertyOptions = {
@@ -1780,7 +1782,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 */
 	async getEventInformation(
 		receiver: BACNetAddress,
-		objectId: BACNetObjectID,
+		objectId?: BACNetObjectID | null,
 		options: ServiceOptions = {},
 	): Promise<BACNetEventInformation[]> {
 		const settings: ServiceOptions = {
@@ -1809,15 +1811,17 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			0,
 			0,
 		)
-		baAsn1.encodeContextObjectId(
-			buffer,
-			0,
-			objectId.type,
-			objectId.instance,
-		)
+		if (objectId) {
+			baAsn1.encodeContextObjectId(
+				buffer,
+				0,
+				objectId.type,
+				objectId.instance,
+			)
+		}
 		this.sendBvlc(receiver, buffer)
 		const data = await this._requestManager.add(settings.invokeId)
-		const result = EventInformation.decode(
+		const result = GetEventInformation.decodeAcknowledge(
 			data.buffer,
 			data.offset,
 			data.length,
@@ -1825,7 +1829,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		if (!result) {
 			throw new Error('INVALID_DECODING')
 		}
-		return result.alarms
+		return result.events
 	}
 
 	/**

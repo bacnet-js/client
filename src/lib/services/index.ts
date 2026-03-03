@@ -85,6 +85,7 @@ const ServicesMap: Record<
 	deviceCommunicationControl: DeviceCommunicationControl,
 	error: ErrorService,
 	eventInformation: EventInformation,
+	eventNotify: EventNotifyData,
 	eventNotifyData: EventNotifyData,
 	getEnrollmentSummary: GetEnrollmentSummary,
 	getEventInformation: GetEventInformation,
