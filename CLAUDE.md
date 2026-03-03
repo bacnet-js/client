@@ -103,16 +103,16 @@ Thin re-export: `BACnetClient` as default export, plus all enums, types, and bit
 
 ## ASHRAE 135 Standard Reference
 
-This library implements [ASHRAE Standard 135 (BACnet)](https://www.ashrae.org/technical-resources/standards-and-guidelines/read-only-versions-of-ashrae-standards). Always consult the official specification when reviewing or implementing features:
+This library implements ASHRAE Standard 135 (BACnet). Always consult the official specification and reference implementations when reviewing or implementing features:
 
-- **[Standard 135-2024](https://ashrae.iwrapper.com/ASHRAE_PREVIEW_ONLY_STANDARDS/STD_135_2024)** — Current version
-- **[Standard 135-2020](https://ashrae.iwrapper.com/ASHRAE_PREVIEW_ONLY_STANDARDS/STD_135_2020)** — Previous version
+- **[bacnet-stack](https://github.com/bacnet-stack/bacnet-stack)** — The most widely used open-source BACnet implementation in C. Use as the primary source of truth for protocol behavior and packet formats.
+- **[BACnet.org technical papers](https://bacnet.org/developer-resources/)** — Free PDFs covering specific topics (foreign devices, BBMDs, routing, etc.)
+- **[Wireshark BVLC dissector](https://github.com/wireshark/wireshark/blob/master/epan/dissectors/packet-bvlc.c)** — Useful for verifying packet formats and field layouts
 
-When implementing or modifying protocol features, reference the relevant standard section in a code comment with a link when possible. Example:
+When implementing or modifying protocol features, reference the relevant standard section in a code comment. Example:
 
 ```typescript
 // Encode object identifier per ASHRAE 135-2024 §20.2.14
-// https://ashrae.iwrapper.com/ASHRAE_PREVIEW_ONLY_STANDARDS/STD_135_2024
 encodeApplicationObjectId(buffer, objectType, instance)
 ```
 
