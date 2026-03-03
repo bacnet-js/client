@@ -19,11 +19,7 @@ test.describe('bacnet - writePropertyMultiple integration', () => {
 			},
 		]
 		await assert.rejects(
-			client.writePropertyMultiple(
-				{ address: '127.0.0.2' },
-				values,
-				{},
-			),
+			client.writePropertyMultiple({ address: '127.0.0.2' }, values, {}),
 			(err: Error) => {
 				assert.strictEqual(err.message, 'ERR_TIMEOUT')
 				return true
