@@ -55,6 +55,7 @@ export const decode = (
 	let len: number
 	const func = buffer[1]
 	const msgLength = (buffer[2] << 8) | (buffer[3] << 0)
+	if (msgLength < BVLC_HEADER_LENGTH) return undefined
 	if (buffer[0] !== BVLL_TYPE_BACNET_IP || buffer.length < msgLength)
 		return undefined
 	let originatingIP = null
