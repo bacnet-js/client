@@ -13,16 +13,18 @@ test.describe('bacnet - readPropertyMultiple integration', () => {
 				properties: [{ id: 8, index: ASN1_ARRAY_ALL }],
 			},
 		]
-		try {
-			await client.readPropertyMultiple(
+		await assert.rejects(
+			client.readPropertyMultiple(
 				{ address: '127.0.0.2' },
 				requestArray,
 				{},
-			)
-		} catch (err) {
-			assert.strictEqual((err as Error).message, 'ERR_TIMEOUT')
-			client.close()
-		}
+			),
+			(err: Error) => {
+				assert.strictEqual(err.message, 'ERR_TIMEOUT')
+				return true
+			},
+		)
+		client.close()
 	})
 
 	test('should successfully decode a structured view', async (t) => {
