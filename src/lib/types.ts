@@ -534,6 +534,10 @@ export interface ReadPropertyOptions extends ServiceOptions {
 	arrayIndex?: number
 }
 
+export interface WriteFileOptions extends ServiceOptions {
+	isStream?: boolean
+}
+
 export interface WritePropertyOptions extends ServiceOptions {
 	arrayIndex?: number
 	priority?: number
