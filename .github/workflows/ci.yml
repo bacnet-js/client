@@ -13,12 +13,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22]
+        node: [22, 24]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
           cache: 'npm'
@@ -30,7 +30,7 @@ jobs:
         run: npm run lint
       
       - name: Build
-        if: matrix.node == '22'
+        if: matrix.node == '24'
         run: npm run build
   
   test_unit:
@@ -54,9 +54,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-       
-      - uses: actions/download-artifact@v4
+        uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
         with:
           path: downloaded-artifacts
 
@@ -64,7 +64,7 @@ jobs:
         run: |
           mkdir -p .nyc_output
 
-          # format will be downloaded-artifacts/node20-docker-test/*.json
+          # format will be downloaded-artifacts/node22-docker-test/*.json
           
           for dir in downloaded-artifacts/*; do
               cp -r "$dir"/* .nyc_output/
@@ -74,7 +74,7 @@ jobs:
           npx nyc report
 
       - name: Coveralls
-        uses: coverallsapp/github-action@v2.3.4
+        uses: coverallsapp/github-action@v2.3.6
         with:
           github-token: ${{ secrets.github_token }}
 
