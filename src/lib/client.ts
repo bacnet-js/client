@@ -801,6 +801,9 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		// Check BVLC function
 		switch (result.func) {
 			case BvlcResultPurpose.BVLC_RESULT: {
+				if (result.msgLength - result.len < 2) {
+					return trace('Received invalid BVLC result message')
+				}
 				const bvlcResult = baApdu.decodeResult(buffer, result.len)
 				this.emit('bvlcResult', {
 					header,
