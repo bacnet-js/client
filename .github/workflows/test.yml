@@ -18,11 +18,11 @@ jobs:
     strategy:
       fail-fast: false # prevent test to stop if one fails
       matrix:
-        node-version: [20, 22]
+        node-version: [22, 24]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
@@ -56,8 +56,8 @@ jobs:
           fi
       
       - name: Collect artifacts
-        uses: actions/upload-artifact@v4
-        if: matrix.node-version ==  20
+        uses: actions/upload-artifact@v7
+        if: matrix.node-version == 22
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: .nyc_output
