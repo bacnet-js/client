@@ -7,6 +7,7 @@ import { ASN1_ARRAY_ALL } from '../../src'
 test.describe('bacnet - readPropertyMultiple integration', () => {
 	test('should return a timeout error if no device is available', async (t) => {
 		const client = new utils.BacnetClient({ apduTimeout: 200 })
+		t.after(() => client.close())
 		const requestArray = [
 			{
 				objectId: { type: 8, instance: 4194303 },
@@ -24,7 +25,6 @@ test.describe('bacnet - readPropertyMultiple integration', () => {
 				return true
 			},
 		)
-		client.close()
 	})
 
 	test('should successfully decode a structured view', async (t) => {

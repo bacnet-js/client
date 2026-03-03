@@ -6,6 +6,7 @@ import * as utils from './utils'
 test.describe('bacnet - writePropertyMultiple integration', () => {
 	test('should return a timeout error if no device is available', async (t) => {
 		const client = new utils.BacnetClient({ apduTimeout: 200 })
+		t.after(() => client.close())
 		const values = [
 			{
 				objectId: { type: 8, instance: 44301 },
@@ -25,6 +26,5 @@ test.describe('bacnet - writePropertyMultiple integration', () => {
 				return true
 			},
 		)
-		client.close()
 	})
 })
