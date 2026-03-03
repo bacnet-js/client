@@ -1,5 +1,20 @@
 # Changelog
 
+# [3.2.0](https://github.com/bacnet-js/client/compare/v3.1.0...v3.2.0) (2026-03-02)
+
+
+### Bug Fixes
+
+* **asn1:** preserve raw date bytes for wildcard/partial date decode ([#70](https://github.com/bacnet-js/client/issues/70)) ([29f2f8f](https://github.com/bacnet-js/client/commit/29f2f8face1285287e6863c69b0bb241f0580de1))
+* decode getEventInformation ack and allow optional object filter ([#68](https://github.com/bacnet-js/client/issues/68)) ([a8539bd](https://github.com/bacnet-js/client/commit/a8539bd42b2621b4905ffdb86fd859bf2e4efed4))
+* **segmentation:** correctly reassemble segmented ComplexACK responses ([#71](https://github.com/bacnet-js/client/issues/71)) ([cb1fb54](https://github.com/bacnet-js/client/commit/cb1fb54cd56279f687ad7902f9227ae2886dcd99))
+* **services:** map eventNotify to EventNotifyData decoder ([#67](https://github.com/bacnet-js/client/issues/67)) ([9fb90f1](https://github.com/bacnet-js/client/commit/9fb90f1ec5bfc3c233bea2729ca9913cec9f8271))
+
+
+### Features
+
+* schedule/calendar write ([#69](https://github.com/bacnet-js/client/issues/69)) ([82a060a](https://github.com/bacnet-js/client/commit/82a060a4278646edb25dd3afeefabdd41048a84c))
+
 # [3.1.0](https://github.com/bacnet-js/client/compare/v3.0.1...v3.1.0) (2026-02-11)
 
 
