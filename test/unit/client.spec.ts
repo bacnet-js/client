@@ -531,6 +531,40 @@ test.describe('bacnet - client', () => {
 		)
 	})
 
+	test('whoIsThroughBBMD should keep BBMD receiver when limits are provided', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+			_transport: { getMaxPayload: () => number }
+		}
+
+		let sentData: Buffer | undefined
+		client._transport = { getMaxPayload: () => 1482 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(64),
+			offset: 4,
+		})
+		client._send = (buffer) => {
+			sentData = Buffer.from(buffer.buffer.subarray(0, buffer.offset))
+		}
+
+		client.whoIsThroughBBMD(
+			{ address: '127.0.0.1:47808' },
+			{ lowLimit: 0, highLimit: 100 },
+		)
+
+		assert.ok(sentData)
+		const bvlc = baBvlc.decode(sentData, 0)
+		assert.ok(bvlc)
+		assert.strictEqual(
+			bvlc.func,
+			BvlcResultPurpose.DISTRIBUTE_BROADCAST_TO_NETWORK,
+		)
+	})
+
 	test('whoIsThroughBBMD should reject missing bbmd address', async () => {
 		const client = Object.create(BACnetClient.prototype) as BACnetClient
 		assert.throws(
