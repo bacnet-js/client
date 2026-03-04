@@ -8,6 +8,7 @@ import * as baBvlc from '../../src/lib/bvlc'
 import {
 	GetEventInformation,
 	RegisterForeignDevice,
+	WhoIs,
 } from '../../src/lib/services'
 import {
 	BvlcResultFormat,
@@ -497,6 +498,59 @@ test.describe('bacnet - client', () => {
 				{ address: '127.0.0.1:47808' },
 				60,
 			)
+		})
+	})
+
+	test('whoIs should keep explicit options when receiver also contains limit keys', () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+			_transport: { getMaxPayload: () => number }
+		}
+
+		let sentData: Buffer | undefined
+		let sentReceiver: { address?: string } | undefined
+		client._transport = { getMaxPayload: () => 1482 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(64),
+			offset: 4,
+		})
+		client._send = (buffer, receiver) => {
+			sentData = Buffer.from(buffer.buffer.subarray(0, buffer.offset))
+			sentReceiver = receiver
+		}
+
+		client.whoIs(
+			{
+				address: '127.0.0.1:47808',
+				lowLimit: 10,
+				highLimit: 20,
+			} as Parameters<BACnetClient['whoIs']>[0],
+			{ lowLimit: 1, highLimit: 2 },
+		)
+
+		assert.ok(sentData)
+		assert.strictEqual(sentReceiver?.address, '127.0.0.1:47808')
+
+		const bvlc = baBvlc.decode(sentData, 0)
+		const npdu = baNpdu.decode(sentData, bvlc.len)
+		const apdu = baApdu.decodeUnconfirmedServiceRequest(
+			sentData,
+			bvlc.len + npdu.len,
+		)
+		const payloadOffset = bvlc.len + npdu.len + apdu.len
+		const payload = WhoIs.decode(
+			sentData,
+			payloadOffset,
+			sentData.length - payloadOffset,
+		)
+		delete payload.len
+		assert.deepStrictEqual(payload, {
+			lowLimit: 1,
+			highLimit: 2,
 		})
 	})
 

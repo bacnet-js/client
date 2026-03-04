@@ -897,14 +897,18 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		options?: WhoIsOptions,
 	): void {
 		let receiver: BACNetAddress | undefined
-		if (
-			receiverOrOptions &&
-			typeof receiverOrOptions === 'object' &&
-			('lowLimit' in receiverOrOptions ||
-				'highLimit' in receiverOrOptions)
-		) {
-			options = receiverOrOptions as WhoIsOptions
-			receiverOrOptions = undefined
+		if (!options) {
+			if (
+				receiverOrOptions &&
+				typeof receiverOrOptions === 'object' &&
+				('lowLimit' in receiverOrOptions ||
+					'highLimit' in receiverOrOptions)
+			) {
+				options = receiverOrOptions as WhoIsOptions
+				receiverOrOptions = undefined
+			} else {
+				receiver = receiverOrOptions as BACNetAddress
+			}
 		} else {
 			receiver = receiverOrOptions as BACNetAddress
 		}
