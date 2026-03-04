@@ -204,6 +204,8 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 
 	private _segmentStore: Buffer[] = []
 
+	private _isClosed = false
+
 	constructor(options?: ClientOptions) {
 		super()
 
@@ -999,7 +1001,10 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	async registerForeignDevice(
 		receiver: BACNetAddress,
 		ttl: number,
-	): Promise<void> {
+		): Promise<void> {
+		if (this._isClosed) {
+			throw new Error('ERR_CLOSED')
+		}
 		if (!receiver?.address) {
 			throw new Error(
 				'registerForeignDevice requires receiver.address (bbmd_ip:port)',
@@ -1027,9 +1032,15 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			if (pending.ttl === ttl) return pending.promise
 			try {
 				await pending.promise
-			} catch {
+			} catch (err) {
+				if ((err as Error)?.message === 'ERR_CLOSED') {
+					throw err
+				}
 				// If the earlier registration failed, still allow a new attempt
 				// with the requested TTL instead of propagating stale failure.
+			}
+			if (this._isClosed) {
+				throw new Error('ERR_CLOSED')
 			}
 		}
 
@@ -2456,6 +2467,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 * Unloads the current bacnet instance and closes the underlying UDP socket.
 	 */
 	close(): void {
+		this._isClosed = true
 		this._requestManager.clear(true)
 		if (this._pendingForeignDeviceRegistrations?.size) {
 			const err = new Error('ERR_CLOSED')

@@ -300,6 +300,48 @@ test.describe('bacnet - client', () => {
 		assert.strictEqual(transportClosed, true)
 	})
 
+	test('registerForeignDevice should reject queued different-TTL requests when client closes', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+			_requestManager: { clear: (withError?: boolean) => void }
+			_transport: { close: () => void; getMaxPayload: () => number }
+		}
+
+		let transportClosed = false
+		client._settings = { apduTimeout: 1000 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = () => {}
+		client._requestManager = { clear: () => {} }
+		client._transport = {
+			close: () => {
+				transportClosed = true
+			},
+			getMaxPayload: () => 1482,
+		}
+
+		const first = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			60,
+		)
+		const second = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			120,
+		)
+		client.close()
+
+		await assert.rejects(first, /ERR_CLOSED/)
+		await assert.rejects(second, /ERR_CLOSED/)
+		assert.strictEqual(transportClosed, true)
+	})
+
 	test('registerForeignDevice should reject invalid receiver address port', async () => {
 		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
 			_settings: { apduTimeout: number }
