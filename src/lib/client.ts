@@ -289,7 +289,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		if (!portRaw) {
 			if (strictPort)
 				throw new Error(`Invalid receiver.address "${value}"`)
-			return null
+			return `${host}:${DEFAULT_BACNET_PORT}`
 		}
 
 		const port = Number(portRaw)

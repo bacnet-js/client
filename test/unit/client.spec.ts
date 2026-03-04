@@ -372,6 +372,22 @@ test.describe('bacnet - client', () => {
 		)
 	})
 
+	test('normalizeAddress should treat trailing colon as default port in non-strict mode', () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_normalizeAddress: (
+				address?: string,
+				strictPort?: boolean,
+			) => string | null
+		}
+
+		const nonStrict = client._normalizeAddress('127.0.0.1:', false)
+		assert.strictEqual(nonStrict, '127.0.0.1:47808')
+		assert.throws(
+			() => client._normalizeAddress('127.0.0.1:', true),
+			/Invalid receiver\.address/,
+		)
+	})
+
 	test('registerForeignDevice should reject receiver address without port', async () => {
 		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
 			_settings: { apduTimeout: number }
