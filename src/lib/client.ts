@@ -1055,7 +1055,6 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		let rejectRegistration = (_err: Error) => {}
 		const registrationPromise = new Promise<void>((resolve, reject) => {
 			let settled = false
-			rejectRegistration = reject
 			const timeout = setTimeout(() => {
 				cleanup()
 				reject(new Error('ERR_TIMEOUT'))
