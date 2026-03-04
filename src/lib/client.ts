@@ -916,11 +916,14 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		options = options || {}
 
 		const buffer = this._getApduBuffer(receiver)
+		const npduDestination = receiver?.distributeBroadcastToNetwork
+			? undefined
+			: receiver
 
 		baNpdu.encode(
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE,
-			receiver,
+			npduDestination,
 			null,
 			DEFAULT_HOP_COUNT,
 			NetworkLayerMessageType.WHO_IS_ROUTER_TO_NETWORK,
