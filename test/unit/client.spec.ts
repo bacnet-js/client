@@ -342,6 +342,47 @@ test.describe('bacnet - client', () => {
 		assert.strictEqual(sends, 1)
 	})
 
+	test('registerForeignDevice should avoid extra buffer allocation for deduplicated same-TTL calls', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		let getApduBufferCalls = 0
+		let sends = 0
+		client._settings = { apduTimeout: 100 }
+		client._getApduBuffer = () => {
+			getApduBufferCalls += 1
+			return {
+				buffer: Buffer.alloc(32),
+				offset: 4,
+			}
+		}
+		client._send = (_buffer, receiver) => {
+			sends += 1
+			setImmediate(() => {
+				client.emit('bvlcResult', {
+					header: { sender: { address: receiver?.address } },
+					payload: {
+						resultCode: BvlcResultFormat.SUCCESSFUL_COMPLETION,
+					},
+				})
+			})
+		}
+
+		await Promise.all([
+			client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60),
+			client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60),
+		])
+
+		assert.strictEqual(sends, 1)
+		assert.strictEqual(getApduBufferCalls, 1)
+	})
+
 	test('registerForeignDevice should not dedupe parallel calls with different TTL', async () => {
 		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
 			_settings: { apduTimeout: number }

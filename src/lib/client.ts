@@ -1004,14 +1004,6 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			)
 		}
 
-		const buffer = this._getApduBuffer(receiver)
-		RegisterForeignDevice.encode(buffer, ttl)
-		baBvlc.encode(
-			buffer.buffer,
-			BvlcResultPurpose.REGISTER_FOREIGN_DEVICE,
-			buffer.offset,
-		)
-
 		const expectedAddress = this._normalizeAddress(receiver.address, true)
 		if (!expectedAddress) {
 			throw new Error(
@@ -1033,6 +1025,14 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			}
 			return this.registerForeignDevice(receiver, ttl)
 		}
+
+		const buffer = this._getApduBuffer(receiver)
+		RegisterForeignDevice.encode(buffer, ttl)
+		baBvlc.encode(
+			buffer.buffer,
+			BvlcResultPurpose.REGISTER_FOREIGN_DEVICE,
+			buffer.offset,
+		)
 
 		const registrationPromise = new Promise<void>((resolve, reject) => {
 			const timeout = setTimeout(() => {
