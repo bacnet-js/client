@@ -42,7 +42,6 @@ export default class IAm extends BacnetService {
 	public static decode(buffer: Buffer, offset: number) {
 		let result: any
 		let apduLen = 0
-		const orgOffset = offset
 		result = baAsn1.decodeTagNumberAndValue(buffer, offset + apduLen)
 		apduLen += result.len
 		if (result.tagNumber !== ApplicationTag.OBJECTIDENTIFIER)
@@ -74,7 +73,7 @@ export default class IAm extends BacnetService {
 		if (result.value > 0xffff) return undefined
 		const vendorId = result.value
 		return {
-			len: offset - orgOffset,
+			len: apduLen,
 			deviceId,
 			maxApdu,
 			segmentation,

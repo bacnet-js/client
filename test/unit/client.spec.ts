@@ -4,8 +4,20 @@ import assert from 'node:assert'
 import BACnetClient from '../../src/lib/client'
 import * as baNpdu from '../../src/lib/npdu'
 import * as baApdu from '../../src/lib/apdu'
-import { GetEventInformation } from '../../src/lib/services'
-import { EventState, NotifyType, ServicesSupported, TimeStamp } from '../../src'
+import * as baBvlc from '../../src/lib/bvlc'
+import {
+	GetEventInformation,
+	RegisterForeignDevice,
+	WhoIs,
+} from '../../src/lib/services'
+import {
+	BvlcResultFormat,
+	BvlcResultPurpose,
+	EventState,
+	NotifyType,
+	ServicesSupported,
+	TimeStamp,
+} from '../../src'
 
 test.describe('bacnet - client', () => {
 	test('should successfuly encode a bitstring > 32 bits', () => {
@@ -115,5 +127,663 @@ test.describe('bacnet - client', () => {
 		const payloadOffset = 4 + npdu.len + apdu.len
 		assert.strictEqual(payloadOffset, sentRequest.length)
 		assert.deepStrictEqual(events, expected.events)
+	})
+
+	test('registerForeignDevice should send BVLC register and resolve on success result', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		let sentData: Buffer | undefined
+		client._settings = { apduTimeout: 100 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = (buffer, receiver) => {
+			sentData = Buffer.from(buffer.buffer.subarray(0, buffer.offset))
+			setImmediate(() => {
+				client.emit('bvlcResult', {
+					header: { sender: { address: receiver?.address } },
+					payload: {
+						resultCode: BvlcResultFormat.SUCCESSFUL_COMPLETION,
+					},
+				})
+			})
+		}
+
+		await client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60)
+
+		assert.ok(sentData)
+		const bvlc = baBvlc.decode(sentData, 0)
+		assert.ok(bvlc)
+		assert.strictEqual(bvlc.func, BvlcResultPurpose.REGISTER_FOREIGN_DEVICE)
+		const payload = RegisterForeignDevice.decode(
+			sentData,
+			bvlc.len,
+			sentData.length - bvlc.len,
+		)
+		assert.strictEqual(payload.ttl, 60)
+	})
+
+	test('registerForeignDevice should accept BVLC result sender without default port', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		client._settings = { apduTimeout: 100 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = (_buffer, _receiver) => {
+			setImmediate(() => {
+				client.emit('bvlcResult', {
+					header: { sender: { address: '127.0.0.1' } },
+					payload: {
+						resultCode: BvlcResultFormat.SUCCESSFUL_COMPLETION,
+					},
+				})
+			})
+		}
+
+		await assert.doesNotReject(async () => {
+			await client.registerForeignDevice(
+				{ address: '127.0.0.1:47808' },
+				60,
+			)
+		})
+	})
+
+	test('registerForeignDevice should reject on BVLC result NAK', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		client._settings = { apduTimeout: 100 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = (_buffer, receiver) => {
+			setImmediate(() => {
+				client.emit('bvlcResult', {
+					header: { sender: { address: receiver?.address } },
+					payload: {
+						resultCode:
+							BvlcResultFormat.REGISTER_FOREIGN_DEVICE_NAK,
+					},
+				})
+			})
+		}
+
+		await assert.rejects(
+			client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60),
+			/Code:118.*Result:48/,
+		)
+	})
+
+	test('registerForeignDevice should reject on timeout', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		client._settings = { apduTimeout: 25 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = () => {}
+
+		// registerForeignDevice timeout is unref'ed; keep one ref'ed handle
+		// so this test can still observe the rejection deterministically.
+		const keepAlive = setInterval(() => {}, 1000)
+		try {
+			await assert.rejects(
+				client.registerForeignDevice(
+					{ address: '127.0.0.1:47808' },
+					60,
+				),
+				/ERR_TIMEOUT/,
+			)
+		} finally {
+			clearInterval(keepAlive)
+		}
+	})
+
+	test('registerForeignDevice should reject pending registration when client closes', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+			_requestManager: { clear: (withError?: boolean) => void }
+			_transport: { close: () => void }
+		}
+
+		let transportClosed = false
+		client._settings = { apduTimeout: 1000 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = () => {}
+		client._requestManager = { clear: () => {} }
+		client._transport = {
+			close: () => {
+				transportClosed = true
+			},
+		}
+
+		const pending = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			60,
+		)
+		client.close()
+
+		await assert.rejects(pending, /ERR_CLOSED/)
+		assert.strictEqual(transportClosed, true)
+	})
+
+	test('registerForeignDevice should reject queued different-TTL requests when client closes', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+			_requestManager: { clear: (withError?: boolean) => void }
+			_transport: { close: () => void; getMaxPayload: () => number }
+		}
+
+		let transportClosed = false
+		client._settings = { apduTimeout: 1000 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = () => {}
+		client._requestManager = { clear: () => {} }
+		client._transport = {
+			close: () => {
+				transportClosed = true
+			},
+			getMaxPayload: () => 1482,
+		}
+
+		const first = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			60,
+		)
+		const second = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			120,
+		)
+		client.close()
+
+		await assert.rejects(first, /ERR_CLOSED/)
+		await assert.rejects(second, /ERR_CLOSED/)
+		assert.strictEqual(transportClosed, true)
+	})
+
+	test('registerForeignDevice should reject invalid receiver address port', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		client._settings = { apduTimeout: 25 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = () => {}
+
+		await assert.rejects(
+			client.registerForeignDevice({ address: '127.0.0.1:abc' }, 60),
+			/Invalid receiver\.address/,
+		)
+	})
+
+	test('normalizeAddress should treat trailing colon as default port in non-strict mode', () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_normalizeAddress: (
+				address?: string,
+				strictPort?: boolean,
+			) => string | null
+		}
+
+		const nonStrict = client._normalizeAddress('127.0.0.1:', false)
+		assert.strictEqual(nonStrict, '127.0.0.1:47808')
+		assert.throws(
+			() => client._normalizeAddress('127.0.0.1:', true),
+			/Invalid receiver\.address/,
+		)
+	})
+
+	test('registerForeignDevice should reject receiver address without port', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		client._settings = { apduTimeout: 25 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = () => {}
+
+		await assert.rejects(
+			client.registerForeignDevice({ address: '127.0.0.1' }, 60),
+			/Invalid receiver\.address/,
+		)
+	})
+
+	test('registerForeignDevice should dedupe parallel calls for the same target', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		let sends = 0
+		client._settings = { apduTimeout: 100 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = (_buffer, receiver) => {
+			sends += 1
+			setImmediate(() => {
+				client.emit('bvlcResult', {
+					header: { sender: { address: receiver?.address } },
+					payload: {
+						resultCode: BvlcResultFormat.SUCCESSFUL_COMPLETION,
+					},
+				})
+			})
+		}
+
+		await Promise.all([
+			client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60),
+			client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60),
+		])
+		assert.strictEqual(sends, 1)
+	})
+
+	test('registerForeignDevice should avoid extra buffer allocation for deduplicated same-TTL calls', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		let getApduBufferCalls = 0
+		let sends = 0
+		client._settings = { apduTimeout: 100 }
+		client._getApduBuffer = () => {
+			getApduBufferCalls += 1
+			return {
+				buffer: Buffer.alloc(32),
+				offset: 4,
+			}
+		}
+		client._send = (_buffer, receiver) => {
+			sends += 1
+			setImmediate(() => {
+				client.emit('bvlcResult', {
+					header: { sender: { address: receiver?.address } },
+					payload: {
+						resultCode: BvlcResultFormat.SUCCESSFUL_COMPLETION,
+					},
+				})
+			})
+		}
+
+		await Promise.all([
+			client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60),
+			client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60),
+		])
+
+		assert.strictEqual(sends, 1)
+		assert.strictEqual(getApduBufferCalls, 1)
+	})
+
+	test('registerForeignDevice should not dedupe parallel calls with different TTL', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		let sends = 0
+		client._settings = { apduTimeout: 100 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = (_buffer, receiver) => {
+			sends += 1
+			setImmediate(() => {
+				client.emit('bvlcResult', {
+					header: { sender: { address: receiver?.address } },
+					payload: {
+						resultCode: BvlcResultFormat.SUCCESSFUL_COMPLETION,
+					},
+				})
+			})
+		}
+
+		await Promise.all([
+			client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60),
+			client.registerForeignDevice({ address: '127.0.0.1:47808' }, 120),
+		])
+		assert.strictEqual(sends, 2)
+	})
+
+	test('registerForeignDevice should not resolve two different TTL requests from a single BVLC result', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		let sends = 0
+		client._settings = { apduTimeout: 30 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = (_buffer, receiver) => {
+			sends += 1
+			if (sends === 1) {
+				setImmediate(() => {
+					client.emit('bvlcResult', {
+						header: { sender: { address: receiver?.address } },
+						payload: {
+							resultCode: BvlcResultFormat.SUCCESSFUL_COMPLETION,
+						},
+					})
+				})
+			}
+		}
+
+		const first = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			60,
+		)
+		const second = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			120,
+		)
+
+		const keepAlive = setInterval(() => {}, 1000)
+		try {
+			await assert.doesNotReject(first)
+			await assert.rejects(second, /ERR_TIMEOUT/)
+		} finally {
+			clearInterval(keepAlive)
+		}
+		assert.strictEqual(sends, 2)
+	})
+
+	test('registerForeignDevice should retry queued TTL request if prior attempt fails', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		let sends = 0
+		client._settings = { apduTimeout: 30 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = (_buffer, receiver) => {
+			sends += 1
+			if (sends === 2) {
+				setImmediate(() => {
+					client.emit('bvlcResult', {
+						header: { sender: { address: receiver?.address } },
+						payload: {
+							resultCode: BvlcResultFormat.SUCCESSFUL_COMPLETION,
+						},
+					})
+				})
+			}
+		}
+
+		const first = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			60,
+		)
+		const second = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			120,
+		)
+
+		const keepAlive = setInterval(() => {}, 1000)
+		try {
+			await assert.rejects(first, /ERR_TIMEOUT/)
+			await assert.doesNotReject(second)
+		} finally {
+			clearInterval(keepAlive)
+		}
+		assert.strictEqual(sends, 2)
+	})
+
+	test('registerForeignDevice should ignore unrelated error events', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+		}
+
+		client._settings = { apduTimeout: 100 }
+		client.on('error', () => {})
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = (_buffer, receiver) => {
+			setImmediate(() => {
+				client.emit('error', new Error('unrelated socket error'))
+				client.emit('bvlcResult', {
+					header: { sender: { address: receiver?.address } },
+					payload: {
+						resultCode: BvlcResultFormat.SUCCESSFUL_COMPLETION,
+					},
+				})
+			})
+		}
+
+		await assert.doesNotReject(async () => {
+			await client.registerForeignDevice(
+				{ address: '127.0.0.1:47808' },
+				60,
+			)
+		})
+	})
+
+	test('whoIs should keep explicit options when receiver also contains limit keys', () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+			_transport: { getMaxPayload: () => number }
+		}
+
+		let sentData: Buffer | undefined
+		let sentReceiver: { address?: string } | undefined
+		client._transport = { getMaxPayload: () => 1482 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(64),
+			offset: 4,
+		})
+		client._send = (buffer, receiver) => {
+			sentData = Buffer.from(buffer.buffer.subarray(0, buffer.offset))
+			sentReceiver = receiver
+		}
+
+		client.whoIs(
+			{
+				address: '127.0.0.1:47808',
+				lowLimit: 10,
+				highLimit: 20,
+			} as Parameters<BACnetClient['whoIs']>[0],
+			{ lowLimit: 1, highLimit: 2 },
+		)
+
+		assert.ok(sentData)
+		assert.strictEqual(sentReceiver?.address, '127.0.0.1:47808')
+
+		const bvlc = baBvlc.decode(sentData, 0)
+		const npdu = baNpdu.decode(sentData, bvlc.len)
+		const apdu = baApdu.decodeUnconfirmedServiceRequest(
+			sentData,
+			bvlc.len + npdu.len,
+		)
+		const payloadOffset = bvlc.len + npdu.len + apdu.len
+		const payload = WhoIs.decode(
+			sentData,
+			payloadOffset,
+			sentData.length - payloadOffset,
+		)
+		delete payload.len
+		assert.deepStrictEqual(payload, {
+			lowLimit: 1,
+			highLimit: 2,
+		})
+	})
+
+	test('whoIsThroughBBMD should send BVLC distribute-broadcast-to-network with no NPDU destination', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+			_transport: { getMaxPayload: () => number }
+		}
+
+		let sentData: Buffer | undefined
+		let sentReceiver: { address?: string } | undefined
+		client._transport = { getMaxPayload: () => 1482 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(64),
+			offset: 4,
+		})
+		client._send = (buffer, receiver) => {
+			sentData = Buffer.from(buffer.buffer.subarray(0, buffer.offset))
+			sentReceiver = receiver
+		}
+
+		client.whoIsThroughBBMD({ address: '127.0.0.1:47808', net: 1 })
+
+		assert.ok(sentData)
+		const bvlc = baBvlc.decode(sentData, 0)
+		assert.ok(bvlc)
+		assert.strictEqual(
+			bvlc.func,
+			BvlcResultPurpose.DISTRIBUTE_BROADCAST_TO_NETWORK,
+		)
+		assert.strictEqual(sentReceiver?.address, '127.0.0.1:47808')
+		const npdu = baNpdu.decode(sentData, bvlc.len)
+		assert.strictEqual(npdu?.destination, undefined)
+	})
+
+	test('whoIsThroughBBMD should keep BBMD receiver when limits are provided', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+			_transport: { getMaxPayload: () => number }
+		}
+
+		let sentData: Buffer | undefined
+		client._transport = { getMaxPayload: () => 1482 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(64),
+			offset: 4,
+		})
+		client._send = (buffer) => {
+			sentData = Buffer.from(buffer.buffer.subarray(0, buffer.offset))
+		}
+
+		client.whoIsThroughBBMD(
+			{ address: '127.0.0.1:47808' },
+			{ lowLimit: 0, highLimit: 100 },
+		)
+
+		assert.ok(sentData)
+		const bvlc = baBvlc.decode(sentData, 0)
+		assert.ok(bvlc)
+		assert.strictEqual(
+			bvlc.func,
+			BvlcResultPurpose.DISTRIBUTE_BROADCAST_TO_NETWORK,
+		)
+	})
+
+	test('whoIsThroughBBMD should reject missing bbmd address', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient
+		assert.throws(
+			() => client.whoIsThroughBBMD({}),
+			/whoIsThroughBBMD requires bbmd\.address/,
+		)
 	})
 })

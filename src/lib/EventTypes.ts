@@ -21,6 +21,7 @@ import {
 	ListElementOperationPayload,
 	PrivateTransferPayload,
 	RegisterForeignDevicePayload,
+	BvlcResultPayload,
 	WhoHasPayload,
 	TimeSyncPayload,
 	IHavePayload,
@@ -179,6 +180,9 @@ export interface BACnetClientEvents {
 	) => void
 	privateTransfer: (
 		content: BaseEventContent & { payload: PrivateTransferPayload },
+	) => void
+	bvlcResult: (
+		content: BaseEventContent & { payload: BvlcResultPayload },
 	) => void
 	registerForeignDevice: (
 		content: BaseEventContent & { payload: RegisterForeignDevicePayload },

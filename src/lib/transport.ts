@@ -1,14 +1,13 @@
 import { createSocket, Socket } from 'dgram'
 import { EventEmitter } from 'events'
 import { TypedEventEmitter, TransportEvents } from './EventTypes'
+import { DEFAULT_BACNET_PORT } from './enum'
 
 import { TransportSettings } from './types'
 import debugLib from 'debug'
 
 const debug = debugLib('bacnet:transport:debug')
 const trace = debugLib('bacnet:transport:trace')
-
-const DEFAULT_BACNET_PORT = 47808
 
 export default class Transport extends TypedEventEmitter<TransportEvents> {
 	private _settings: TransportSettings
