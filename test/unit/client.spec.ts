@@ -255,10 +255,17 @@ test.describe('bacnet - client', () => {
 		})
 		client._send = () => {}
 
-		await assert.rejects(
-			client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60),
-			/ERR_TIMEOUT/,
-		)
+		// registerForeignDevice timeout is unref'ed; keep one ref'ed handle
+		// so this test can still observe the rejection deterministically.
+		const keepAlive = setInterval(() => {}, 1000)
+		try {
+			await assert.rejects(
+				client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60),
+				/ERR_TIMEOUT/,
+			)
+		} finally {
+			clearInterval(keepAlive)
+		}
 	})
 
 	test('registerForeignDevice should reject invalid receiver address port', async () => {
@@ -457,8 +464,13 @@ test.describe('bacnet - client', () => {
 			120,
 		)
 
-		await assert.doesNotReject(first)
-		await assert.rejects(second, /ERR_TIMEOUT/)
+		const keepAlive = setInterval(() => {}, 1000)
+		try {
+			await assert.doesNotReject(first)
+			await assert.rejects(second, /ERR_TIMEOUT/)
+		} finally {
+			clearInterval(keepAlive)
+		}
 		assert.strictEqual(sends, 2)
 	})
 
@@ -501,8 +513,13 @@ test.describe('bacnet - client', () => {
 			120,
 		)
 
-		await assert.rejects(first, /ERR_TIMEOUT/)
-		await assert.doesNotReject(second)
+		const keepAlive = setInterval(() => {}, 1000)
+		try {
+			await assert.rejects(first, /ERR_TIMEOUT/)
+			await assert.doesNotReject(second)
+		} finally {
+			clearInterval(keepAlive)
+		}
 		assert.strictEqual(sends, 2)
 	})
 

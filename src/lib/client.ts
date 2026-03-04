@@ -1039,6 +1039,9 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				cleanup()
 				reject(new Error('ERR_TIMEOUT'))
 			}, this._settings.apduTimeout || 3000)
+			if (typeof (timeout as NodeJS.Timeout).unref === 'function') {
+				;(timeout as NodeJS.Timeout).unref()
+			}
 
 			const cleanup = () => {
 				clearTimeout(timeout)
