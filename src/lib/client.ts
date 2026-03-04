@@ -114,6 +114,7 @@ import {
 	ASN1_NO_PRIORITY,
 	PropertyIdentifier,
 	ReadRangeType,
+	DEFAULT_BACNET_PORT,
 } from './enum'
 import { RequestManager } from './request-manager'
 
@@ -125,7 +126,6 @@ const trace = debugLib('bacnet:client:trace')
 const ALL_INTERFACES = '0.0.0.0'
 const LOCALHOST_INTERFACES_IPV4 = '127.0.0.1'
 const BROADCAST_ADDRESS = '255.255.255.255'
-const DEFAULT_BACNET_PORT = 47808
 const DEFAULT_HOP_COUNT = 0xff
 const BVLC_HEADER_LENGTH = 4
 const BVLC_FWD_HEADER_LENGTH = 10 // FORWARDED_NPDU
@@ -206,7 +206,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		options = options || {}
 
 		this._settings = {
-			port: options.port || 47808,
+			port: options.port || DEFAULT_BACNET_PORT,
 			interface: options.interface || ALL_INTERFACES, // Usa la costante
 			transport: options.transport,
 			broadcastAddress: options.broadcastAddress || BROADCAST_ADDRESS, // Usa la costante

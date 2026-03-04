@@ -68,6 +68,7 @@ export const ASN1_MAX_OBJECT_TYPE = 1024
 export const ASN1_MAX_PROPERTY_ID = 4194303
 export const BVLL_TYPE_BACNET_IP = 0x81
 export const BVLC_HEADER_LENGTH = 4
+export const DEFAULT_BACNET_PORT = 47808
 
 // ASHRE 135-2016 - 21 FORMAL DESCRIPTION OF APPLICATION PROTOCOL DATA UNITS - Enumerators
 export enum ConfirmedServiceChoice {

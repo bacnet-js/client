@@ -2,10 +2,9 @@ import {
 	BVLL_TYPE_BACNET_IP,
 	BvlcResultPurpose,
 	BVLC_HEADER_LENGTH,
+	DEFAULT_BACNET_PORT,
 } from './enum'
 import { BvlcPacket } from './types'
-
-const DEFAULT_BACNET_PORT = 47808
 
 export const encode = (
 	buffer: Buffer,
