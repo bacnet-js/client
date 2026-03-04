@@ -1085,6 +1085,8 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				)
 					return
 				const resultCode = Number(content?.payload?.resultCode)
+				// ASHRAE 135 Annex J encodes successful completion as 0x0000 for all
+				// BVLC operations. For now we can only correlate by sender address.
 				if (resultCode === BvlcResultFormat.SUCCESSFUL_COMPLETION) {
 					cleanup()
 					resolve()

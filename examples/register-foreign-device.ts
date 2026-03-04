@@ -57,12 +57,12 @@ const closeClient = () => {
 
 const register = async () => {
 	if (registerInFlight) return
-		registerInFlight = true
-		try {
-			await bacnetClient.registerForeignDevice(
-				{ address: bbmdAddress },
-				ttlSeconds,
-			)
+	registerInFlight = true
+	try {
+		await bacnetClient.registerForeignDevice(
+			{ address: bbmdAddress },
+			ttlSeconds,
+		)
 		console.log(
 			`FDR success: bbmd=${bbmdAddress}, ttl=${ttlSeconds}s, next_renew_in=${Math.floor(renewDelayMs / 1000)}s`,
 		)
