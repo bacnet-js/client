@@ -268,6 +268,38 @@ test.describe('bacnet - client', () => {
 		}
 	})
 
+	test('registerForeignDevice should reject pending registration when client closes', async () => {
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_settings: { apduTimeout: number }
+			_getApduBuffer: () => { buffer: Buffer; offset: number }
+			_send: (
+				buffer: { buffer: Buffer; offset: number },
+				receiver?: { address?: string },
+			) => void
+			_requestManager: { clear: (withError?: boolean) => void }
+			_transport: { close: () => void }
+		}
+
+		let transportClosed = false
+		client._settings = { apduTimeout: 1000 }
+		client._getApduBuffer = () => ({
+			buffer: Buffer.alloc(32),
+			offset: 4,
+		})
+		client._send = () => {}
+		client._requestManager = { clear: () => {} }
+		client._transport = { close: () => { transportClosed = true } }
+
+		const pending = client.registerForeignDevice(
+			{ address: '127.0.0.1:47808' },
+			60,
+		)
+		client.close()
+
+		await assert.rejects(pending, /ERR_CLOSED/)
+		assert.strictEqual(transportClosed, true)
+	})
+
 	test('registerForeignDevice should reject invalid receiver address port', async () => {
 		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
 			_settings: { apduTimeout: number }

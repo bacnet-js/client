@@ -189,7 +189,11 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 
 	private _pendingForeignDeviceRegistrations?: Map<
 		string,
-		{ ttl: number; promise: Promise<void> }
+		{
+			ttl: number
+			promise: Promise<void>
+			reject: (err: Error) => void
+		}
 	>
 
 	private _invokeCounter = 1
@@ -1015,10 +1019,11 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		}
 		const pendingRegistrations =
 			this._getPendingForeignDeviceRegistrations()
-		const pending = pendingRegistrations.get(expectedAddress)
-		if (pending) {
-			// BVLC-Result has no invoke-id, so parallel registrations to the same BBMD
-			// must be serialized to avoid correlating one response to multiple requests.
+		// BVLC-Result has no invoke-id, so registrations to the same BBMD
+		// must be serialized to avoid correlating one response to multiple requests.
+		while (true) {
+			const pending = pendingRegistrations.get(expectedAddress)
+			if (!pending) break
 			if (pending.ttl === ttl) return pending.promise
 			try {
 				await pending.promise
@@ -1026,7 +1031,6 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 				// If the earlier registration failed, still allow a new attempt
 				// with the requested TTL instead of propagating stale failure.
 			}
-			return this.registerForeignDevice(receiver, ttl)
 		}
 
 		const buffer = this._getApduBuffer(receiver)
@@ -1037,7 +1041,10 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			buffer.offset,
 		)
 
+		let rejectRegistration = (_err: Error) => {}
 		const registrationPromise = new Promise<void>((resolve, reject) => {
+			let settled = false
+			rejectRegistration = reject
 			const timeout = setTimeout(() => {
 				cleanup()
 				reject(new Error('ERR_TIMEOUT'))
@@ -1047,8 +1054,14 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			}
 
 			const cleanup = () => {
+				if (settled) return
+				settled = true
 				clearTimeout(timeout)
 				this.off('bvlcResult', onResult)
+			}
+			rejectRegistration = (err: Error) => {
+				cleanup()
+				reject(err)
 			}
 
 			const onResult = (content: {
@@ -1080,6 +1093,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		pendingRegistrations.set(expectedAddress, {
 			ttl,
 			promise: registrationPromise,
+			reject: rejectRegistration,
 		})
 		try {
 			await registrationPromise
@@ -2443,6 +2457,13 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	 */
 	close(): void {
 		this._requestManager.clear(true)
+		if (this._pendingForeignDeviceRegistrations?.size) {
+			const err = new Error('ERR_CLOSED')
+			for (const pending of this._pendingForeignDeviceRegistrations.values()) {
+				pending.reject(err)
+			}
+			this._pendingForeignDeviceRegistrations.clear()
+		}
 		this._transport.close()
 	}
 
