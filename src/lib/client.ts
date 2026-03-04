@@ -1001,7 +1001,7 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 	async registerForeignDevice(
 		receiver: BACNetAddress,
 		ttl: number,
-		): Promise<void> {
+	): Promise<void> {
 		if (this._isClosed) {
 			throw new Error('ERR_CLOSED')
 		}

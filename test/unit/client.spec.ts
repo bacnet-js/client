@@ -260,7 +260,10 @@ test.describe('bacnet - client', () => {
 		const keepAlive = setInterval(() => {}, 1000)
 		try {
 			await assert.rejects(
-				client.registerForeignDevice({ address: '127.0.0.1:47808' }, 60),
+				client.registerForeignDevice(
+					{ address: '127.0.0.1:47808' },
+					60,
+				),
 				/ERR_TIMEOUT/,
 			)
 		} finally {
@@ -288,7 +291,11 @@ test.describe('bacnet - client', () => {
 		})
 		client._send = () => {}
 		client._requestManager = { clear: () => {} }
-		client._transport = { close: () => { transportClosed = true } }
+		client._transport = {
+			close: () => {
+				transportClosed = true
+			},
+		}
 
 		const pending = client.registerForeignDevice(
 			{ address: '127.0.0.1:47808' },
