@@ -1,5 +1,18 @@
 # Changelog
 
+# [3.3.0](https://github.com/bacnet-js/client/compare/v3.2.0...v3.3.0) (2026-03-04)
+
+
+### Bug Fixes
+
+* set file type as isStream ([#62](https://github.com/bacnet-js/client/issues/62)) ([21d5836](https://github.com/bacnet-js/client/commit/21d583623508820f13017749b5ad587559136515))
+* **tests:** eliminate flaky timers and silent false positives ([#75](https://github.com/bacnet-js/client/issues/75)) ([cd8704a](https://github.com/bacnet-js/client/commit/cd8704ac7c864f8f78befb5fb14bd866505f6ee0)), closes [#73](https://github.com/bacnet-js/client/issues/73)
+
+
+### Features
+
+* foreign device registration ([#74](https://github.com/bacnet-js/client/issues/74)) ([15f3960](https://github.com/bacnet-js/client/commit/15f3960e5ea05d10720451d05ce234e0a6af3c04)), closes [#54](https://github.com/bacnet-js/client/issues/54)
+
 # [3.2.0](https://github.com/bacnet-js/client/compare/v3.1.0...v3.2.0) (2026-03-02)
 
 
