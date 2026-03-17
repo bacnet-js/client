@@ -2582,19 +2582,19 @@ export const decodeRange = (
 			record.isLogStatus = true
 			const logStatusBits = value.value as BACNetBitString
 			record.logStatus = {
-				logDisabled: ((logStatusBits.value[0] >> 0) & 1) !== 0,
-				bufferPurged: ((logStatusBits.value[0] >> 1) & 1) !== 0,
-				logInterrupted: ((logStatusBits.value[0] >> 2) & 1) !== 0,
+				log_disabled: ((logStatusBits.value[0] >> 0) & 1) !== 0,
+				buffer_purged: ((logStatusBits.value[0] >> 1) & 1) !== 0,
+				log_interrupted: ((logStatusBits.value[0] >> 2) & 1) !== 0,
 			}
 		}
 
 		if (status) {
 			const statusBits = status.value as BACNetBitString
 			record.status = {
-				outOfService: ((statusBits.value[0] >> 0) & 1) !== 0,
+				out_of_service: ((statusBits.value[0] >> 0) & 1) !== 0,
 				overridden: ((statusBits.value[0] >> 1) & 1) !== 0,
 				fault: ((statusBits.value[0] >> 2) & 1) !== 0,
-				inAlarm: ((statusBits.value[0] >> 3) & 1) !== 0,
+				in_alarm: ((statusBits.value[0] >> 3) & 1) !== 0,
 			}
 		}
 
