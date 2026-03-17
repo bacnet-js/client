@@ -31,6 +31,7 @@ import {
 	BACNetDateValue,
 	BACNetEncodableAppData,
 	BACNetRawDate,
+	LogRecord,
 } from './types'
 import {
 	CharacterStringEncoding,
@@ -2425,11 +2426,11 @@ export const decodeRange = (
 	buffer: Buffer,
 	offset: number,
 	maxOffset: number,
-): Decode<any[]> | undefined => {
+): Decode<LogRecord[]> | undefined => {
 	// The payload for readRange ACK is expected to start with opening tag 0.
 	if (!decodeIsOpeningTagNumber(buffer, offset, 0)) return undefined
 	let len = 0
-	const result: any[] = []
+	const result: LogRecord[] = []
 
 	while (
 		offset + len < maxOffset &&
@@ -2564,22 +2565,7 @@ export const decodeRange = (
 			t.getMilliseconds(),
 		)
 
-		const record: {
-			timestamp: Date
-			value: unknown
-			isLogStatus?: boolean
-			logStatus?: {
-				log_disabled: boolean
-				buffer_purged: boolean
-				log_interrupted: boolean
-			}
-			status?: {
-				out_of_service: boolean
-				overridden: boolean
-				fault: boolean
-				in_alarm: boolean
-			}
-		} = {
+		const record: LogRecord = {
 			timestamp,
 			value: value.value,
 		}

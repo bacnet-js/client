@@ -742,13 +742,60 @@ export interface ReadRangePayload extends BasicServicePayload {
 	values: BACNetAppData[]
 }
 
+/**
+ * Represents the log-status choice for special log records.
+ * These are status-only records without actual data values.
+ */
+export interface LogStatusFlags {
+	log_disabled: boolean
+	buffer_purged: boolean
+	log_interrupted: boolean
+}
+
+/**
+ * Represents the status flags for a normal log record.
+ */
+export interface LogRecordStatusFlags {
+	out_of_service: boolean
+	overridden: boolean
+	fault: boolean
+	in_alarm: boolean
+}
+
+/**
+ * Represents a single log record from a TREND_LOG.
+ * Can be either a normal data record or a special log-status record.
+ */
+export interface LogRecord {
+	/** Timestamp when the record was logged */
+	timestamp: Date
+	/**
+	 * The logged value. For normal records, this is the actual data (number, boolean, etc.).
+	 * For log-status records, this is the raw bitstring value.
+	 */
+	value: unknown
+	/**
+	 * True if this is a special log-status record (log-disabled, buffer-purged, log-interrupted).
+	 * Undefined for normal data records.
+	 */
+	isLogStatus?: boolean
+	/**
+	 * Present only for log-status records. Indicates which special status applies.
+	 */
+	logStatus?: LogStatusFlags
+	/**
+	 * Present only for normal data records. Contains the BACnet status flags.
+	 */
+	status?: LogRecordStatusFlags
+}
+
 export interface ReadRangeAcknowledge {
 	objectId: BACNetObjectID
 	property: BACNetPropertyID
 	resultFlag: BACNetBitString
 	itemCount: number
 	rangeBuffer: Buffer
-	values?: any[]
+	values?: LogRecord[]
 	len: number
 }
 

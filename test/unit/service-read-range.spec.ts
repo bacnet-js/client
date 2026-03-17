@@ -290,7 +290,7 @@ test.describe('ReadRangeAcknowledge', () => {
 
 		// First record: normal with value 42.5
 		assert.equal(result.values?.[0].value, 42.5)
-		assert.equal(result.values?.[0].isLogStatus, undefined)
+		assert.strictEqual(result.values?.[0].isLogStatus, undefined)
 		assert.ok(result.values?.[0].status)
 
 		// Second record: log-status (log-interrupted)
@@ -299,11 +299,11 @@ test.describe('ReadRangeAcknowledge', () => {
 		assert.equal(result.values?.[1].logStatus?.log_interrupted, true)
 		assert.equal(result.values?.[1].logStatus?.log_disabled, false)
 		assert.equal(result.values?.[1].logStatus?.buffer_purged, false)
-		assert.equal(result.values?.[1].status, undefined)
+		assert.strictEqual(result.values?.[1].status, undefined)
 
 		// Third record: normal with value 99.9 (approximately)
 		assert.ok(Math.abs((result.values?.[2].value as number) - 99.9) < 0.01)
-		assert.equal(result.values?.[2].isLogStatus, undefined)
+		assert.strictEqual(result.values?.[2].isLogStatus, undefined)
 		assert.ok(result.values?.[2].status)
 	})
 
