@@ -32,6 +32,7 @@ import {
 	BACNetEncodableAppData,
 	BACNetRawDate,
 	LogRecord,
+	LogRecordValue,
 } from './types'
 import {
 	CharacterStringEncoding,
@@ -2574,12 +2575,12 @@ export const decodeRange = (
 
 		const record: LogRecord = {
 			timestamp,
-			value: value.value,
+			value: value.value as LogRecordValue,
 		}
 
 		if (isLogStatus) {
 			record.isLogStatus = true
-			const logStatusBits = value.value as { value: number[] }
+			const logStatusBits = value.value as BACNetBitString
 			record.logStatus = {
 				log_disabled: ((logStatusBits.value[0] >> 0) & 1) !== 0,
 				buffer_purged: ((logStatusBits.value[0] >> 1) & 1) !== 0,
@@ -2588,7 +2589,7 @@ export const decodeRange = (
 		}
 
 		if (status) {
-			const statusBits = status.value as { value: number[] }
+			const statusBits = status.value as BACNetBitString
 			record.status = {
 				out_of_service: ((statusBits.value[0] >> 0) & 1) !== 0,
 				overridden: ((statusBits.value[0] >> 1) & 1) !== 0,

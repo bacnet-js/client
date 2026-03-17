@@ -765,6 +765,18 @@ export interface LogRecordStatusFlags {
 }
 
 /**
+ * Union type for log record values per ASHRAE 135 §12.25.
+ * log-datum CHOICE can contain various types depending on the logged property.
+ */
+export type LogRecordValue =
+	| number // REAL, ENUMERATED, UNSIGNED_INTEGER, SIGNED_INTEGER
+	| boolean // BOOLEAN
+	| BACNetBitString // log-status bitstring
+	| null // NULL
+	| string // CHARACTER_STRING
+	| BACNetObjectID // OBJECTIDENTIFIER
+
+/**
  * LogRecord per ASHRAE 135 §12.25.
  * Represents a single log record from a TREND_LOG.
  * Can be either a normal data record or a special log-status record.
@@ -774,9 +786,9 @@ export interface LogRecord {
 	timestamp: Date
 	/**
 	 * The logged value. For normal records, this is the actual data (number, boolean, etc.).
-	 * For log-status records, this is the raw bitstring value.
+	 * For log-status records, this is a BACNetBitString.
 	 */
-	value: unknown
+	value: LogRecordValue
 	/**
 	 * True if this is a special log-status record (log-disabled, buffer-purged, log-interrupted).
 	 * Undefined for normal data records.
