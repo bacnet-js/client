@@ -2475,10 +2475,30 @@ export const decodeRange = (
 		len += 2
 
 		// value payload (context specific)
+		// This is the log-datum CHOICE with options:
+		// [0] log-status (BACnetLogStatus bitstring - special records)
+		// [1] boolean-value
+		// [2] real-value
+		// [3] enum-value
+		// [4] unsigned-value
+		// ... and more per ASHRAE 135
 		tag = decodeTagNumberAndValue(buffer, offset + len)
 		len += tag.len
 		let value: ApplicationData | undefined
-		if (tag.tagNumber === 2 && tag.value === 4) {
+		let isLogStatus = false
+		if (tag.tagNumber === 0) {
+			// log-status choice: BACnetLogStatus bitstring
+			// These are special log records (log-disabled, buffer-purged, log-interrupted)
+			// They do NOT have status flags after the log-datum
+			value = bacappDecodeData(
+				buffer,
+				offset + len,
+				maxOffset,
+				ApplicationTag.BIT_STRING,
+				tag.value,
+			)
+			isLogStatus = true
+		} else if (tag.tagNumber === 2 && tag.value === 4) {
 			value = bacappDecodeData(
 				buffer,
 				offset + len,
@@ -2506,26 +2526,34 @@ export const decodeRange = (
 		if (!value) return undefined
 		len += value.len
 
-		// closing tag 1 + opening tag 2
-		tag = decodeTagNumberAndValue(buffer, offset + len)
-		len += tag.len
+		// closing tag 1 is required
+		if (!decodeIsClosingTagNumber(buffer, offset + len, 1)) {
+			return undefined
+		}
 		tag = decodeTagNumberAndValue(buffer, offset + len)
 		len += tag.len
 
-		// status flags
-		const status = bacappDecodeData(
-			buffer,
-			offset + len,
-			maxOffset,
-			ApplicationTag.BIT_STRING,
-			tag.value,
-		)
-		if (!status) return undefined
-		len += status.len
+		// context tag 2 (status flags) is optional for regular log records.
+		// Special log records (log-status choice) do NOT have status flags.
+		let status: ApplicationData | undefined
+		if (!isLogStatus && decodeIsContextTag(buffer, offset + len, 2)) {
+			tag = decodeTagNumberAndValue(buffer, offset + len)
+			len += tag.len
+
+			// status flags bitstring
+			status = bacappDecodeData(
+				buffer,
+				offset + len,
+				maxOffset,
+				ApplicationTag.BIT_STRING,
+				tag.value,
+			)
+			if (!status) return undefined
+			len += status.len
+		}
 
 		const d = date.value as Date
 		const t = time.value as Date
-		const statusBits = status.value as { value: number[] }
 		const timestamp = new Date(
 			d.getFullYear(),
 			d.getMonth(),
@@ -2535,16 +2563,48 @@ export const decodeRange = (
 			t.getSeconds(),
 			t.getMilliseconds(),
 		)
-		result.push({
+
+		const record: {
+			timestamp: Date
+			value: unknown
+			isLogStatus?: boolean
+			logStatus?: {
+				log_disabled: boolean
+				buffer_purged: boolean
+				log_interrupted: boolean
+			}
+			status?: {
+				out_of_service: boolean
+				overridden: boolean
+				fault: boolean
+				in_alarm: boolean
+			}
+		} = {
 			timestamp,
 			value: value.value,
-			status: {
+		}
+
+		if (isLogStatus) {
+			record.isLogStatus = true
+			const logStatusBits = value.value as { value: number[] }
+			record.logStatus = {
+				log_disabled: ((logStatusBits.value[0] >> 0) & 1) !== 0,
+				buffer_purged: ((logStatusBits.value[0] >> 1) & 1) !== 0,
+				log_interrupted: ((logStatusBits.value[0] >> 2) & 1) !== 0,
+			}
+		}
+
+		if (status) {
+			const statusBits = status.value as { value: number[] }
+			record.status = {
 				out_of_service: ((statusBits.value[0] >> 0) & 1) !== 0,
 				overridden: ((statusBits.value[0] >> 1) & 1) !== 0,
 				fault: ((statusBits.value[0] >> 2) & 1) !== 0,
 				in_alarm: ((statusBits.value[0] >> 3) & 1) !== 0,
-			},
-		})
+			}
+		}
+
+		result.push(record)
 	}
 
 	if (offset + len >= maxOffset) return undefined

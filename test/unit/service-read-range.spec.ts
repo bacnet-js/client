@@ -198,6 +198,115 @@ test.describe('ReadRangeAcknowledge', () => {
 		)
 	})
 
+	test('should decode special log-status records without status flags', () => {
+		// Build a log record with log-status choice (tag 0) instead of normal value
+		// Per ASHRAE 135, log-status records do NOT have status flags (context tag 2)
+		const applicationData = utils.getBuffer()
+
+		// First record: normal record with status flags
+		baAsn1.encodeOpeningTag(applicationData, 0)
+		baAsn1.bacappEncodeApplicationData(applicationData, {
+			type: ApplicationTag.DATE,
+			value: new Date(2024, 1, 3),
+		})
+		baAsn1.bacappEncodeApplicationData(applicationData, {
+			type: ApplicationTag.TIME,
+			value: new Date(2024, 1, 3, 12, 15, 30, 0),
+		})
+		baAsn1.encodeClosingTag(applicationData, 0)
+		baAsn1.encodeOpeningTag(applicationData, 1)
+		baAsn1.encodeTag(applicationData, 2, true, 4)
+		applicationData.buffer.writeFloatBE(42.5, applicationData.offset)
+		applicationData.offset += 4
+		baAsn1.encodeClosingTag(applicationData, 1)
+		baAsn1.encodeContextBitstring(applicationData, 2, {
+			bitsUsed: 4,
+			value: [0b0000],
+		})
+
+		// Second record: log-status (log-interrupted) without status flags
+		baAsn1.encodeOpeningTag(applicationData, 0)
+		baAsn1.bacappEncodeApplicationData(applicationData, {
+			type: ApplicationTag.DATE,
+			value: new Date(2024, 1, 3),
+		})
+		baAsn1.bacappEncodeApplicationData(applicationData, {
+			type: ApplicationTag.TIME,
+			value: new Date(2024, 1, 3, 12, 30, 0, 0),
+		})
+		baAsn1.encodeClosingTag(applicationData, 0)
+		baAsn1.encodeOpeningTag(applicationData, 1)
+		// log-status choice: context tag 0 with bitstring
+		// LOG_INTERRUPTED = bit 2 = 0b0100 = 4
+		baAsn1.encodeContextBitstring(applicationData, 0, {
+			bitsUsed: 3,
+			value: [0b0100],
+		})
+		baAsn1.encodeClosingTag(applicationData, 1)
+		// NO status flags for log-status records!
+
+		// Third record: another normal record with status flags
+		baAsn1.encodeOpeningTag(applicationData, 0)
+		baAsn1.bacappEncodeApplicationData(applicationData, {
+			type: ApplicationTag.DATE,
+			value: new Date(2024, 1, 3),
+		})
+		baAsn1.bacappEncodeApplicationData(applicationData, {
+			type: ApplicationTag.TIME,
+			value: new Date(2024, 1, 3, 12, 45, 0, 0),
+		})
+		baAsn1.encodeClosingTag(applicationData, 0)
+		baAsn1.encodeOpeningTag(applicationData, 1)
+		baAsn1.encodeTag(applicationData, 2, true, 4)
+		applicationData.buffer.writeFloatBE(99.9, applicationData.offset)
+		applicationData.offset += 4
+		baAsn1.encodeClosingTag(applicationData, 1)
+		baAsn1.encodeContextBitstring(applicationData, 2, {
+			bitsUsed: 4,
+			value: [0b0000],
+		})
+
+		const buffer = utils.getBuffer()
+		ReadRange.encodeAcknowledge(
+			buffer,
+			{ type: 20, instance: 0 },
+			131,
+			0xffffffff,
+			{ bitsUsed: 3, value: [0] },
+			3,
+			applicationData.buffer.slice(0, applicationData.offset),
+			ReadRangeType.BY_POSITION,
+			0,
+		)
+
+		const result = ReadRange.decodeAcknowledge(
+			buffer.buffer,
+			0,
+			buffer.offset,
+		)
+		assert.ok(result)
+		assert.ok(result.values)
+		assert.equal(result.values?.length, 3)
+
+		// First record: normal with value 42.5
+		assert.equal(result.values?.[0].value, 42.5)
+		assert.equal(result.values?.[0].isLogStatus, undefined)
+		assert.ok(result.values?.[0].status)
+
+		// Second record: log-status (log-interrupted)
+		assert.equal(result.values?.[1].isLogStatus, true)
+		assert.ok(result.values?.[1].logStatus)
+		assert.equal(result.values?.[1].logStatus?.log_interrupted, true)
+		assert.equal(result.values?.[1].logStatus?.log_disabled, false)
+		assert.equal(result.values?.[1].logStatus?.buffer_purged, false)
+		assert.equal(result.values?.[1].status, undefined)
+
+		// Third record: normal with value 99.9 (approximately)
+		assert.ok(Math.abs((result.values?.[2].value as number) - 99.9) < 0.01)
+		assert.equal(result.values?.[2].isLogStatus, undefined)
+		assert.ok(result.values?.[2].status)
+	})
+
 	test('should slice fallback rangeBuffer correctly with non-zero offset', () => {
 		const ackBuffer = utils.getBuffer()
 		ReadRange.encodeAcknowledge(
