@@ -296,9 +296,9 @@ test.describe('ReadRangeAcknowledge', () => {
 		// Second record: log-status (log-interrupted)
 		assert.equal(result.values?.[1].isLogStatus, true)
 		assert.ok(result.values?.[1].logStatus)
-		assert.equal(result.values?.[1].logStatus?.log_interrupted, true)
-		assert.equal(result.values?.[1].logStatus?.log_disabled, false)
-		assert.equal(result.values?.[1].logStatus?.buffer_purged, false)
+		assert.equal(result.values?.[1].logStatus?.logInterrupted, true)
+		assert.equal(result.values?.[1].logStatus?.logDisabled, false)
+		assert.equal(result.values?.[1].logStatus?.bufferPurged, false)
 		assert.strictEqual(result.values?.[1].status, undefined)
 
 		// Third record: normal with value 99.9 (approximately)

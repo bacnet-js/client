@@ -748,9 +748,9 @@ export interface ReadRangePayload extends BasicServicePayload {
  * These are status-only records without actual data values.
  */
 export interface LogStatusFlags {
-	log_disabled: boolean
-	buffer_purged: boolean
-	log_interrupted: boolean
+	logDisabled: boolean
+	bufferPurged: boolean
+	logInterrupted: boolean
 }
 
 /**
@@ -758,23 +758,23 @@ export interface LogStatusFlags {
  * Represents the status flags for a normal log record.
  */
 export interface LogRecordStatusFlags {
-	out_of_service: boolean
+	outOfService: boolean
 	overridden: boolean
 	fault: boolean
-	in_alarm: boolean
+	inAlarm: boolean
 }
 
 /**
  * Union type for log record values per ASHRAE 135 §12.25.
- * log-datum CHOICE can contain various types depending on the logged property.
+ * Currently supported log-datum CHOICE types decoded by decodeRange:
+ * - [0] log-status (BACNetBitString)
+ * - [2] real-value (number)
+ * - [3] enumerated-value (number)
+ * - [4] unsigned-value (number)
+ * Other CHOICE alternatives exist in the BACnet spec but are not currently decoded;
+ * for unsupported types, use the raw `rangeBuffer` from ReadRangeAcknowledge.
  */
-export type LogRecordValue =
-	| number // REAL, ENUMERATED, UNSIGNED_INTEGER, SIGNED_INTEGER
-	| boolean // BOOLEAN
-	| BACNetBitString // log-status bitstring
-	| null // NULL
-	| string // CHARACTER_STRING
-	| BACNetObjectID // OBJECTIDENTIFIER
+export type LogRecordValue = number | BACNetBitString
 
 /**
  * LogRecord per ASHRAE 135 §12.25.
