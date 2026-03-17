@@ -743,6 +743,7 @@ export interface ReadRangePayload extends BasicServicePayload {
 }
 
 /**
+ * BACnetLogStatus bitstring per ASHRAE 135 §12.25.
  * Represents the log-status choice for special log records.
  * These are status-only records without actual data values.
  */
@@ -753,6 +754,7 @@ export interface LogStatusFlags {
 }
 
 /**
+ * BACnetStatusFlags per ASHRAE 135 §12.25.
  * Represents the status flags for a normal log record.
  */
 export interface LogRecordStatusFlags {
@@ -763,6 +765,7 @@ export interface LogRecordStatusFlags {
 }
 
 /**
+ * LogRecord per ASHRAE 135 §12.25.
  * Represents a single log record from a TREND_LOG.
  * Can be either a normal data record or a special log-status record.
  */

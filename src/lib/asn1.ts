@@ -2422,6 +2422,14 @@ export const decodeCalendarDatelist = (
 	return { len, value: result }
 }
 
+/**
+ * Decodes LogRecord sequence from ReadRange ACK payload.
+ * Per ASHRAE 135 §12.25, LogRecord ::= SEQUENCE {
+ *   timestamp [0] BACnetDateTime,
+ *   logDatum  [1] CHOICE { log-status [0], boolean-value [1], real-value [2], ... },
+ *   statusFlags [2] BACnetStatusFlags OPTIONAL  -- NOT present for log-status choice
+ * }
+ */
 export const decodeRange = (
 	buffer: Buffer,
 	offset: number,
@@ -2475,22 +2483,21 @@ export const decodeRange = (
 		}
 		len += 2
 
-		// value payload (context specific)
-		// This is the log-datum CHOICE with options:
+		// log-datum [1] CHOICE per ASHRAE 135 §12.25:
 		// [0] log-status (BACnetLogStatus bitstring - special records)
 		// [1] boolean-value
 		// [2] real-value
 		// [3] enum-value
 		// [4] unsigned-value
-		// ... and more per ASHRAE 135
+		// ... and more
 		tag = decodeTagNumberAndValue(buffer, offset + len)
 		len += tag.len
 		let value: ApplicationData | undefined
 		let isLogStatus = false
 		if (tag.tagNumber === 0) {
-			// log-status choice: BACnetLogStatus bitstring
-			// These are special log records (log-disabled, buffer-purged, log-interrupted)
-			// They do NOT have status flags after the log-datum
+			// log-status choice: BACnetLogStatus bitstring per ASHRAE 135 §12.25
+			// Special log records (log-disabled, buffer-purged, log-interrupted)
+			// do NOT have statusFlags [2] after the log-datum
 			value = bacappDecodeData(
 				buffer,
 				offset + len,
