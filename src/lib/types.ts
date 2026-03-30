@@ -779,7 +779,7 @@ export type LogRecordValue =
 /**
  * LogRecord per ASHRAE 135 §12.25.
  * Represents a single log record from a TREND_LOG.
- * Can be either a normal data record or a special log-status record.
+ * Can be either a normal data record, a special log-status record, or a time-change record.
  */
 export interface LogRecord {
 	/** Timestamp when the record was logged */
@@ -787,19 +787,28 @@ export interface LogRecord {
 	/**
 	 * The logged value. For normal records, this is the actual data (number, boolean, etc.).
 	 * For log-status records, this is a BACNetBitString.
+	 * For time-change records, this is the number of seconds the clock changed (REAL).
 	 */
 	value: LogRecordValue
 	/**
 	 * True if this is a special log-status record (log-disabled, buffer-purged, log-interrupted).
-	 * Undefined for normal data records.
+	 * Undefined for normal data records and time-change records.
 	 */
 	isLogStatus?: boolean
+	/**
+	 * True if this is a time-change record (clock adjustment).
+	 * Per ASHRAE 135 §12.25, time-change records contain a REAL value representing
+	 * the number of seconds the clock changed (positive or negative).
+	 * Undefined for normal data records and log-status records.
+	 */
+	isTimeChange?: boolean
 	/**
 	 * Present only for log-status records. Indicates which special status applies.
 	 */
 	logStatus?: LogStatusFlags
 	/**
-	 * Present only for normal data records. Contains the BACnet status flags.
+	 * Present only when status flags are encoded. Per ASHRAE 135 §12.25,
+	 * status flags are optional for ALL log record types.
 	 */
 	status?: LogRecordStatusFlags
 }

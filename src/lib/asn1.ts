@@ -2490,15 +2490,20 @@ export const decodeRange = (
 		// [2] real-value
 		// [3] enum-value
 		// [4] unsigned-value
-		// ... and more
+		// [5] signed-value
+		// [6] bitstring-value
+		// [7] null-value
+		// [8] failure (BACnetError)
+		// [9] time-change (REAL - seconds delta for clock adjustment)
+		// [10] any-value (ABSTRACT-SYNTAX.&Type)
 		tag = decodeTagNumberAndValue(buffer, offset + len)
 		len += tag.len
 		let value: ApplicationData | undefined
 		let isLogStatus = false
+		let isTimeChange = false
 		if (tag.tagNumber === 0) {
 			// log-status choice: BACnetLogStatus bitstring per ASHRAE 135 §12.25
 			// Special log records (log-disabled, buffer-purged, log-interrupted)
-			// do NOT have statusFlags [2] after the log-datum
 			value = bacappDecodeData(
 				buffer,
 				offset + len,
@@ -2507,7 +2512,8 @@ export const decodeRange = (
 				tag.value,
 			)
 			isLogStatus = true
-		} else if (tag.tagNumber === 2 && tag.value === 4) {
+		} else if (tag.tagNumber === 2) {
+			// real-value
 			value = bacappDecodeData(
 				buffer,
 				offset + len,
@@ -2515,7 +2521,8 @@ export const decodeRange = (
 				ApplicationTag.REAL,
 				tag.value,
 			)
-		} else if (tag.tagNumber === 4 && tag.value === 1) {
+		} else if (tag.tagNumber === 3) {
+			// enum-value
 			value = bacappDecodeData(
 				buffer,
 				offset + len,
@@ -2523,7 +2530,8 @@ export const decodeRange = (
 				ApplicationTag.ENUMERATED,
 				tag.value,
 			)
-		} else if (tag.tagNumber === 3 && tag.value === 1) {
+		} else if (tag.tagNumber === 4) {
+			// unsigned-value
 			value = bacappDecodeData(
 				buffer,
 				offset + len,
@@ -2531,6 +2539,17 @@ export const decodeRange = (
 				ApplicationTag.ENUMERATED,
 				tag.value,
 			)
+		} else if (tag.tagNumber === 9) {
+			// time-change: REAL value representing seconds the clock changed
+			// Per ASHRAE 135 §12.25, time-change records do not have status flags
+			value = bacappDecodeData(
+				buffer,
+				offset + len,
+				maxOffset,
+				ApplicationTag.REAL,
+				tag.value,
+			)
+			isTimeChange = true
 		}
 		if (!value) return undefined
 		len += value.len
@@ -2542,10 +2561,12 @@ export const decodeRange = (
 		tag = decodeTagNumberAndValue(buffer, offset + len)
 		len += tag.len
 
-		// context tag 2 (status flags) is optional for regular log records.
-		// Special log records (log-status choice) do NOT have status flags.
+		// context tag 2 (status flags) is OPTIONAL for ALL log record types.
+		// Per ASHRAE 135 §12.25 and bacnet-stack, status flags are only encoded
+		// when the ucStatus byte has bit 7 set. This means any record type
+		// (log-status, time-change, real-value, etc.) may or may not have status flags.
 		let status: ApplicationData | undefined
-		if (!isLogStatus && decodeIsContextTag(buffer, offset + len, 2)) {
+		if (decodeIsContextTag(buffer, offset + len, 2)) {
 			tag = decodeTagNumberAndValue(buffer, offset + len)
 			len += tag.len
 
@@ -2586,6 +2607,10 @@ export const decodeRange = (
 				buffer_purged: ((logStatusBits.value[0] >> 1) & 1) !== 0,
 				log_interrupted: ((logStatusBits.value[0] >> 2) & 1) !== 0,
 			}
+		}
+
+		if (isTimeChange) {
+			record.isTimeChange = true
 		}
 
 		if (status) {
