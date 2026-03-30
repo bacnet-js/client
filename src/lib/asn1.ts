@@ -2536,7 +2536,7 @@ export const decodeRange = (
 				buffer,
 				offset + len,
 				maxOffset,
-				ApplicationTag.ENUMERATED,
+				ApplicationTag.UNSIGNED_INTEGER,
 				tag.value,
 			)
 		} else if (tag.tagNumber === 9) {
