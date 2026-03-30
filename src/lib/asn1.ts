@@ -31,6 +31,8 @@ import {
 	BACNetDateValue,
 	BACNetEncodableAppData,
 	BACNetRawDate,
+	LogRecord,
+	LogRecordValue,
 } from './types'
 import {
 	CharacterStringEncoding,
@@ -2421,15 +2423,23 @@ export const decodeCalendarDatelist = (
 	return { len, value: result }
 }
 
+/**
+ * Decodes LogRecord sequence from ReadRange ACK payload.
+ * Per ASHRAE 135 §12.25, LogRecord ::= SEQUENCE {
+ *   timestamp [0] BACnetDateTime,
+ *   logDatum  [1] CHOICE { log-status [0], boolean-value [1], real-value [2], ... },
+ *   statusFlags [2] BACnetStatusFlags OPTIONAL  -- NOT present for log-status choice
+ * }
+ */
 export const decodeRange = (
 	buffer: Buffer,
 	offset: number,
 	maxOffset: number,
-): Decode<any[]> | undefined => {
+): Decode<LogRecord[]> | undefined => {
 	// The payload for readRange ACK is expected to start with opening tag 0.
 	if (!decodeIsOpeningTagNumber(buffer, offset, 0)) return undefined
 	let len = 0
-	const result: any[] = []
+	const result: LogRecord[] = []
 
 	while (
 		offset + len < maxOffset &&
@@ -2474,11 +2484,36 @@ export const decodeRange = (
 		}
 		len += 2
 
-		// value payload (context specific)
+		// log-datum [1] CHOICE per ASHRAE 135 §12.25:
+		// [0] log-status (BACnetLogStatus bitstring - special records)
+		// [1] boolean-value
+		// [2] real-value
+		// [3] enum-value
+		// [4] unsigned-value
+		// [5] signed-value
+		// [6] bitstring-value
+		// [7] null-value
+		// [8] failure (BACnetError)
+		// [9] time-change (REAL - seconds delta for clock adjustment)
+		// [10] any-value (ABSTRACT-SYNTAX.&Type)
 		tag = decodeTagNumberAndValue(buffer, offset + len)
 		len += tag.len
 		let value: ApplicationData | undefined
-		if (tag.tagNumber === 2 && tag.value === 4) {
+		let isLogStatus = false
+		let isTimeChange = false
+		if (tag.tagNumber === 0) {
+			// log-status choice: BACnetLogStatus bitstring per ASHRAE 135 §12.25
+			// Special log records (log-disabled, buffer-purged, log-interrupted)
+			value = bacappDecodeData(
+				buffer,
+				offset + len,
+				maxOffset,
+				ApplicationTag.BIT_STRING,
+				tag.value,
+			)
+			isLogStatus = true
+		} else if (tag.tagNumber === 2) {
+			// real-value
 			value = bacappDecodeData(
 				buffer,
 				offset + len,
@@ -2486,7 +2521,8 @@ export const decodeRange = (
 				ApplicationTag.REAL,
 				tag.value,
 			)
-		} else if (tag.tagNumber === 4 && tag.value === 1) {
+		} else if (tag.tagNumber === 3) {
+			// enum-value
 			value = bacappDecodeData(
 				buffer,
 				offset + len,
@@ -2494,38 +2530,60 @@ export const decodeRange = (
 				ApplicationTag.ENUMERATED,
 				tag.value,
 			)
-		} else if (tag.tagNumber === 3 && tag.value === 1) {
+		} else if (tag.tagNumber === 4) {
+			// unsigned-value
 			value = bacappDecodeData(
 				buffer,
 				offset + len,
 				maxOffset,
-				ApplicationTag.ENUMERATED,
+				ApplicationTag.UNSIGNED_INTEGER,
 				tag.value,
 			)
+		} else if (tag.tagNumber === 9) {
+			// time-change: REAL value representing seconds the clock changed
+			// Per ASHRAE 135 §12.25, time-change records do not have status flags
+			value = bacappDecodeData(
+				buffer,
+				offset + len,
+				maxOffset,
+				ApplicationTag.REAL,
+				tag.value,
+			)
+			isTimeChange = true
 		}
 		if (!value) return undefined
 		len += value.len
 
-		// closing tag 1 + opening tag 2
-		tag = decodeTagNumberAndValue(buffer, offset + len)
-		len += tag.len
+		// closing tag 1 is required
+		if (!decodeIsClosingTagNumber(buffer, offset + len, 1)) {
+			return undefined
+		}
 		tag = decodeTagNumberAndValue(buffer, offset + len)
 		len += tag.len
 
-		// status flags
-		const status = bacappDecodeData(
-			buffer,
-			offset + len,
-			maxOffset,
-			ApplicationTag.BIT_STRING,
-			tag.value,
-		)
-		if (!status) return undefined
-		len += status.len
+		// context tag 2 (status flags) is OPTIONAL for ALL log record types.
+		// Per ASHRAE 135 §12.25 and bacnet-stack, status flags are only encoded
+		// when the ucStatus byte has bit 7 set. This means any record type
+		// (log-status, time-change, real-value, etc.) may or may not have status flags.
+		let status: ApplicationData | undefined
+		if (decodeIsContextTag(buffer, offset + len, 2)) {
+			tag = decodeTagNumberAndValue(buffer, offset + len)
+			len += tag.len
+
+			// status flags bitstring
+			status = bacappDecodeData(
+				buffer,
+				offset + len,
+				maxOffset,
+				ApplicationTag.BIT_STRING,
+				tag.value,
+			)
+			if (!status) return undefined
+			len += status.len
+		}
 
 		const d = date.value as Date
 		const t = time.value as Date
-		const statusBits = status.value as { value: number[] }
 		const timestamp = new Date(
 			d.getFullYear(),
 			d.getMonth(),
@@ -2535,16 +2593,37 @@ export const decodeRange = (
 			t.getSeconds(),
 			t.getMilliseconds(),
 		)
-		result.push({
+
+		const record: LogRecord = {
 			timestamp,
-			value: value.value,
-			status: {
+			value: value.value as LogRecordValue,
+		}
+
+		if (isLogStatus) {
+			record.isLogStatus = true
+			const logStatusBits = value.value as BACNetBitString
+			record.logStatus = {
+				log_disabled: ((logStatusBits.value[0] >> 0) & 1) !== 0,
+				buffer_purged: ((logStatusBits.value[0] >> 1) & 1) !== 0,
+				log_interrupted: ((logStatusBits.value[0] >> 2) & 1) !== 0,
+			}
+		}
+
+		if (isTimeChange) {
+			record.isTimeChange = true
+		}
+
+		if (status) {
+			const statusBits = status.value as BACNetBitString
+			record.status = {
 				out_of_service: ((statusBits.value[0] >> 0) & 1) !== 0,
 				overridden: ((statusBits.value[0] >> 1) & 1) !== 0,
 				fault: ((statusBits.value[0] >> 2) & 1) !== 0,
 				in_alarm: ((statusBits.value[0] >> 3) & 1) !== 0,
-			},
-		})
+			}
+		}
+
+		result.push(record)
 	}
 
 	if (offset + len >= maxOffset) return undefined
