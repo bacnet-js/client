@@ -108,7 +108,10 @@ export default class WriteProperty extends BacnetService {
 		)
 	}
 
-	private static writeDateBytes(buffer: EncodeBuffer, value: BACNetDateValue) {
+	private static writeDateBytes(
+		buffer: EncodeBuffer,
+		value: BACNetDateValue,
+	) {
 		if (WriteProperty.isRawDate(value)) {
 			WriteProperty.validateRawDateByte('year', value.year, 0, 255)
 			if (value.month !== 0xff) {
@@ -170,7 +173,8 @@ export default class WriteProperty extends BacnetService {
 		if (timeValue == null) {
 			throw new Error(`${errorPrefix} time is required`)
 		}
-		const normalized = timeValue instanceof Date ? timeValue : new Date(timeValue)
+		const normalized =
+			timeValue instanceof Date ? timeValue : new Date(timeValue)
 		if (Number.isNaN(normalized.getTime())) {
 			throw new Error(`${errorPrefix} time is invalid`)
 		}

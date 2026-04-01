@@ -742,13 +742,84 @@ export interface ReadRangePayload extends BasicServicePayload {
 	values: BACNetAppData[]
 }
 
+/**
+ * BACnetLogStatus bitstring per ASHRAE 135 §12.25.
+ * Represents the log-status choice for special log records.
+ * These are status-only records without actual data values.
+ */
+export interface LogStatusFlags {
+	log_disabled: boolean
+	buffer_purged: boolean
+	log_interrupted: boolean
+}
+
+/**
+ * BACnetStatusFlags per ASHRAE 135 §12.25.
+ * Represents the status flags for a normal log record.
+ */
+export interface LogRecordStatusFlags {
+	out_of_service: boolean
+	overridden: boolean
+	fault: boolean
+	in_alarm: boolean
+}
+
+/**
+ * Union type for log record values per ASHRAE 135 §12.25.
+ * log-datum CHOICE can contain various types depending on the logged property.
+ */
+export type LogRecordValue =
+	| number // REAL, ENUMERATED, UNSIGNED_INTEGER, SIGNED_INTEGER
+	| boolean // BOOLEAN
+	| BACNetBitString // log-status bitstring
+	| null // NULL
+	| string // CHARACTER_STRING
+	| BACNetObjectID // OBJECTIDENTIFIER
+
+/**
+ * LogRecord per ASHRAE 135 §12.25.
+ * Represents a single log record from a TREND_LOG.
+ * Can be either a normal data record, a special log-status record, or a time-change record.
+ */
+export interface LogRecord {
+	/** Timestamp when the record was logged */
+	timestamp: Date
+	/**
+	 * The logged value. For normal records, this is the actual data (number, boolean, etc.).
+	 * For log-status records, this is a BACNetBitString.
+	 * For time-change records, this is the number of seconds the clock changed (REAL).
+	 */
+	value: LogRecordValue
+	/**
+	 * True if this is a special log-status record (log-disabled, buffer-purged, log-interrupted).
+	 * Undefined for normal data records and time-change records.
+	 */
+	isLogStatus?: boolean
+	/**
+	 * True if this is a time-change record (clock adjustment).
+	 * Per ASHRAE 135 §12.25, time-change records contain a REAL value representing
+	 * the number of seconds the clock changed (positive or negative).
+	 * Undefined for normal data records and log-status records.
+	 */
+	isTimeChange?: boolean
+	/**
+	 * Present only for log-status records. Indicates which special status applies.
+	 */
+	logStatus?: LogStatusFlags
+	/**
+	 * Present only when status flags are encoded. Per ASHRAE 135 §12.25,
+	 * status flags are optional for ALL log record types.
+	 */
+	status?: LogRecordStatusFlags
+}
+
 export interface ReadRangeAcknowledge {
 	objectId: BACNetObjectID
 	property: BACNetPropertyID
 	resultFlag: BACNetBitString
 	itemCount: number
 	rangeBuffer: Buffer
-	values?: any[]
+	values?: LogRecord[]
 	len: number
 }
 
