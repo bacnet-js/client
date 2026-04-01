@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.1](https://github.com/bacnet-js/client/compare/v3.3.0...v3.3.1) (2026-04-01)
+
+
+### Bug Fixes
+
+* decode special log records in ReadRange without status flags ([#77](https://github.com/bacnet-js/client/issues/77)) ([8074b54](https://github.com/bacnet-js/client/commit/8074b543e9c9fc9c81237a6d8d1091b15002ceb6)), closes [bacnet-js/client#76](https://github.com/bacnet-js/client/issues/76)
+
 # [3.3.0](https://github.com/bacnet-js/client/compare/v3.2.0...v3.3.0) (2026-03-04)
 
 
