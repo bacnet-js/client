@@ -28,6 +28,8 @@ import {
 	BACNetObjectID,
 	BACNetPropertyID,
 	BACNetAppData,
+	WritePropertyRequest,
+	ReadPropertyRequest,
 } from './types'
 
 export type Constructor<T = object> = new (...args: any[]) => T
@@ -74,22 +76,12 @@ export interface BaseEventContent {
 
 // These more specific interfaces help TypeScript provide better IntelliSense
 export interface ReadPropertyContent extends BaseEventContent {
-	payload: {
-		objectId: BACNetObjectID
-		property: BACNetPropertyID
-	}
+	payload: ReadPropertyRequest
 	address?: string
 }
 
 export interface WritePropertyContent extends BaseEventContent {
-	payload: {
-		objectId: BACNetObjectID
-		property?: BACNetPropertyID
-		value?: {
-			property?: BACNetPropertyID
-			value?: BACNetAppData | BACNetAppData[]
-		}
-	}
+	payload: WritePropertyRequest
 }
 
 export interface ReadPropertyMultipleContent extends BaseEventContent {
