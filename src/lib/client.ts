@@ -1679,6 +1679,8 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
 			receiver,
+			null,
+			DEFAULT_HOP_COUNT,
 		)
 		baApdu.encodeConfirmedServiceRequest(
 			buffer,
@@ -1724,6 +1726,8 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 			buffer,
 			NpduControlPriority.NORMAL_MESSAGE | NpduControlBit.EXPECTING_REPLY,
 			receiver,
+			null,
+			DEFAULT_HOP_COUNT,
 		)
 		baApdu.encodeConfirmedServiceRequest(
 			buffer,
