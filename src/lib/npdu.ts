@@ -102,7 +102,8 @@ export const encode = (
 	funct: number,
 	destination?: BACNetAddress,
 	source?: BACNetAddress,
-	hopCount?: number,
+	// Default to the maximum hop count; routed NPDUs with hop count 0 are discarded by routers
+	hopCount: number = 0xff,
 	networkMsgType?: number,
 	vendorId?: number,
 ): void => {
@@ -124,7 +125,7 @@ export const encode = (
 	}
 
 	if (hasDestination) {
-		buffer.buffer[buffer.offset++] = hopCount || 0
+		buffer.buffer[buffer.offset++] = hopCount
 	}
 
 	if ((funct & NpduControlBit.NETWORK_LAYER_MESSAGE) > 0) {
