@@ -498,9 +498,18 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		length: number,
 	): void {
 		const sender = content.header?.sender
-		if (sender?.address === LOCALHOST_INTERFACES_IPV4) {
+		// Only skip requests from this client's own socket. A blanket localhost
+		// filter breaks topologies where a BACnet router runs on the same host
+		// (e.g. routed MS/TP): COV notifications and other requests forwarded by
+		// the router arrive from 127.0.0.1 and must be processed. True same-port
+		// echoes are already de-duplicated by the transport layer.
+		const ownPort = this._settings.port || DEFAULT_BACNET_PORT
+		const selfAddress =
+			LOCALHOST_INTERFACES_IPV4 +
+			(ownPort === DEFAULT_BACNET_PORT ? '' : `:${ownPort}`)
+		if (sender?.address === selfAddress) {
 			debug(
-				'Received and skipped localhost service request:',
+				'Received and skipped own localhost service request:',
 				content.service,
 			)
 			return
