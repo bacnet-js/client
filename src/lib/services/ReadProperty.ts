@@ -238,6 +238,26 @@ export default class ReadProperty extends BacnetService {
 				value: result.value,
 			} as ApplicationData)
 			len += result.len
+		} else if (property.id === PropertyIdentifier.ACTIVE_COV_SUBSCRIPTIONS) {
+			// The COV subscription list decoder is only reachable via
+			// bacappDecodeContextApplicationData, which no service uses; decode
+			// each list entry here like the schedule/calendar properties above
+			while (
+				apduLen - len > 1 &&
+				!baAsn1.decodeIsClosingTagNumber(buffer, offset + len, 3)
+			) {
+				const result = baAsn1.decodeCovSubscription(
+					buffer,
+					offset + len,
+					apduLen - len,
+				)
+				if (!result) return undefined
+				values.push({
+					type: ApplicationTag.COV_SUBSCRIPTION,
+					value: result.value,
+				} as ApplicationData)
+				len += result.len
+			}
 		} else {
 			while (apduLen - len > 1) {
 				const result = baAsn1.bacappDecodeApplicationData(

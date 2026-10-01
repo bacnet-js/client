@@ -1856,7 +1856,7 @@ export const decodeReadAccessSpecification = (
 	}
 }
 
-const decodeCovSubscription = (
+export const decodeCovSubscription = (
 	buffer: Buffer,
 	offset: number,
 	apduLen: number,
