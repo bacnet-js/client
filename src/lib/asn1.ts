@@ -1856,7 +1856,7 @@ export const decodeReadAccessSpecification = (
 	}
 }
 
-const decodeCovSubscription = (
+export const decodeCovSubscription = (
 	buffer: Buffer,
 	offset: number,
 	apduLen: number,
@@ -1953,7 +1953,13 @@ const decodeCovSubscription = (
 	decodedValue = decodeUnsigned(buffer, offset + len, result.value)
 	len += decodedValue.len
 	value.timeRemaining = decodedValue.value
-	if (len < apduLen && !isClosingTag(buffer[offset + len])) {
+	// covIncrement [4] is optional; in a list the next byte may be the opening
+	// tag of the next subscription, so require the context tag to match
+	if (
+		len < apduLen &&
+		!isClosingTag(buffer[offset + len]) &&
+		decodeIsContextTag(buffer, offset + len, 4)
+	) {
 		result = decodeTagNumberAndValue(buffer, offset + len)
 		len += result.len
 		if (result.tagNumber !== 4) return undefined
