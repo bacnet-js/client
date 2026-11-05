@@ -126,4 +126,55 @@ test.describe('RequestManager', () => {
 		manager.add(44).catch(() => {})
 		assert.strictEqual(spy.mock.callCount(), 3)
 	})
+	test('a resolved request lingering until the next clear() does not orphan a newer request reusing its invokeId', async (t) => {
+		t.mock.timers.enable({ apis: ['setTimeout', 'Date'] })
+		manager = new RequestManager(delay)
+		const stale = manager.add(42)
+		manager.resolve(42, undefined, result)
+		assert.strictEqual(await stale, result)
+		t.mock.timers.tick(delay / 2)
+		// invokeId 42 wrapped around while the resolved entry is still listed
+		const live = manager.add(42)
+		// clear() runs on the stale entry's expiry, before the live one expires
+		t.mock.timers.tick(delay / 2)
+		assert.strictEqual(manager.resolve(42, undefined, result), true)
+		assert.strictEqual(await live, result)
+	})
+
+	test('a newer request reusing the invokeId of a lingering resolved request still times out', async (t) => {
+		t.mock.timers.enable({ apis: ['setTimeout', 'Date'] })
+		manager = new RequestManager(delay)
+		manager.add(42).catch(() => {})
+		manager.resolve(42, undefined, result)
+		t.mock.timers.tick(delay / 2)
+		const live = manager.add(42)
+		t.mock.timers.tick(delay / 2)
+		t.mock.timers.tick(delay)
+		await assert.rejects(live, (err: Error) => {
+			assert.strictEqual(err.message, 'ERR_TIMEOUT')
+			return true
+		})
+	})
+
+	test('add() rejects a pending request whose invokeId is reused instead of orphaning it', async (t) => {
+		t.mock.timers.enable({ apis: ['setTimeout', 'Date'] })
+		manager = new RequestManager(delay)
+		const first = manager.add(42)
+		const second = manager.add(42)
+		await assert.rejects(first, (err: Error) => {
+			assert.strictEqual(err.message, 'ERR_TIMEOUT')
+			return true
+		})
+		assert.strictEqual(manager.resolve(42, undefined, result), true)
+		assert.strictEqual(await second, result)
+	})
+
+	test('has() reports only requests still awaiting a response', async (t) => {
+		t.mock.timers.enable({ apis: ['setTimeout', 'Date'] })
+		manager = new RequestManager(delay)
+		manager.add(42).catch(() => {})
+		assert.strictEqual(manager.has(42), true)
+		manager.resolve(42, undefined, result)
+		assert.strictEqual(manager.has(42), false)
+	})
 })
