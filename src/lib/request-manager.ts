@@ -58,7 +58,26 @@ export class RequestManager {
 		this.#setTimeout = _setTimeout
 	}
 
+	/**
+	 * Whether a request with the given invokeId is still awaiting a response.
+	 */
+	has(invokeId: number): boolean {
+		return this.#requestsById.has(invokeId)
+	}
+
 	add(invokeId: number): Promise<NetworkOpResult> {
+		// A request still pending under the same invokeId would otherwise be
+		// orphaned: its index entry gets overwritten, so neither resolve() nor
+		// clear() could ever settle its promise.
+		const displaced = this.#requestsById.get(invokeId)
+		if (displaced) {
+			debug(
+				'InvokeId',
+				invokeId,
+				'reused while pending -> reject previous',
+			)
+			displaced.deferred.reject(new Error('ERR_TIMEOUT'))
+		}
 		const deferred = new Deferred<NetworkOpResult>()
 		const request = {
 			invokeId,
@@ -110,14 +129,16 @@ export class RequestManager {
 		const qty = this.#requestsByTime.length
 		// filter() is usually faster than splice() for small-ish arrays
 		this.#requestsByTime = this.#requestsByTime.filter((request) => {
-			if (!this.#requestsById.has(request.invokeId)) {
-				// Request has already been resolved or expired
+			if (this.#requestsById.get(request.invokeId) !== request) {
+				// Request has already been resolved or expired. Compare by identity:
+				// its invokeId may already have been reused by a newer request,
+				// which must be left untouched.
 				return false
 			}
 			if (force || request.expiresAt <= now) {
 				// Request has timed out or we forcefully time it out
-				request.deferred.reject(new Error('ERR_TIMEOUT'))
 				this.#requestsById.delete(request.invokeId)
+				request.deferred.reject(new Error('ERR_TIMEOUT'))
 				return false
 			}
 			// Request is still pending

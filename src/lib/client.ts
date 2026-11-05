@@ -244,10 +244,22 @@ export default class BACnetClient extends TypedEventEmitter<BACnetClientEvents> 
 		this._transport.send(buffer.buffer, buffer.offset, receiver?.address)
 	}
 
-	private _getInvokeId() {
+	private _nextInvokeId() {
 		const id = this._invokeCounter++
 		if (id >= 256) this._invokeCounter = 1
 		return id - 1
+	}
+
+	private _getInvokeId() {
+		// Skip ids still awaiting a response, so that a late reply can never be
+		// matched to a different request. If all 256 ids are pending, fall back
+		// to the next one: RequestManager.add() then rejects the displaced
+		// request instead of orphaning it.
+		for (let i = 0; i < 256; i++) {
+			const id = this._nextInvokeId()
+			if (!this._requestManager.has(id)) return id
+		}
+		return this._nextInvokeId()
 	}
 
 	private _getApduBuffer(address?: BACNetAddress): EncodeBuffer {

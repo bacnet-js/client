@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert'
 
 import BACnetClient from '../../src/lib/client'
+import { RequestManager } from '../../src/lib/request-manager'
 import * as baNpdu from '../../src/lib/npdu'
 import * as baApdu from '../../src/lib/apdu'
 import * as baBvlc from '../../src/lib/bvlc'
@@ -785,5 +786,21 @@ test.describe('bacnet - client', () => {
 			() => client.whoIsThroughBBMD({}),
 			/whoIsThroughBBMD requires bbmd\.address/,
 		)
+	})
+	test('_getInvokeId() skips invokeIds that are still awaiting a response', () => {
+		const requestManager = new RequestManager(1000)
+		const client = Object.create(BACnetClient.prototype) as BACnetClient & {
+			_invokeCounter: number
+			_requestManager: RequestManager
+			_getInvokeId: () => number
+		}
+		client._invokeCounter = 1
+		client._requestManager = requestManager
+		const pending = client._getInvokeId()
+		requestManager.add(pending).catch(() => {})
+		const ids = Array.from({ length: 300 }, () => client._getInvokeId())
+		assert.strictEqual(ids.includes(pending), false)
+		assert.strictEqual(new Set(ids.slice(0, 255)).size, 255)
+		requestManager.clear(true)
 	})
 })
